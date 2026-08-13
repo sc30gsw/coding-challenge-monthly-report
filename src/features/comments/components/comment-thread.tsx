@@ -3,7 +3,7 @@ import type { SubmitHandler } from "@formisch/react";
 import { Badge, Button, Card, Group, Select, Stack, Text, Textarea } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
 import { Result } from "better-result";
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 
 import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { postComment } from "~/features/comments/api/comments";
@@ -47,12 +47,16 @@ const timestamp = new Intl.DateTimeFormat("ja-JP", {
  * 理由を出します。楽観表示はあくまで表示で、保存されたかどうかはサーバーの応答が決めます。
  */
 export function CommentThread({ comments, lines, reportId, viewer }: CommentThreadProps) {
-  const [pending, setPending] = useState<Comment[]>([]);
   const [failure, setFailure] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [visible, addOptimistic] = useOptimistic(comments, (current: Comment[], next: Comment) => [
+    ...current,
+    next,
+  ]);
   const form = useForm({ schema: CreateCommentInputSchema });
   const router = useRouter();
 
-  const handleSubmit: SubmitHandler<typeof CreateCommentInputSchema> = async (input) => {
+  const handleSubmit: SubmitHandler<typeof CreateCommentInputSchema> = (input) => {
     const optimistic: Comment = {
       author: { id: viewer.id, name: viewer.name, role: viewer.role },
       body: input.body,
@@ -63,25 +67,24 @@ export function CommentThread({ comments, lines, reportId, viewer }: CommentThre
     };
 
     setFailure(null);
-    setPending((current) => [...current, optimistic]);
     reset(form);
 
-    const posted = await postComment(reportId, input);
+    startTransition(async () => {
+      addOptimistic(optimistic);
 
-    if (Result.isError(posted)) {
-      // 受理されなかったので取り消します。残したままだと、書いたつもりが
-      // 相手に届いていない状態になります。
-      setPending((current) => current.filter((comment) => comment.id !== optimistic.id));
-      setFailure("コメントを投稿できませんでした。時間をおいて試してください。");
+      const posted = await postComment(reportId, input);
 
-      return;
-    }
+      if (Result.isError(posted)) {
+        // transition が終わると仮の行は消えます。残したままだと、書いたつもりが
+        // 相手に届いていない状態になります。
+        setFailure("コメントを投稿できませんでした。時間をおいて試してください。");
 
-    await router.invalidate();
-    setPending((current) => current.filter((comment) => comment.id !== optimistic.id));
+        return;
+      }
+
+      await router.invalidate();
+    });
   };
-
-  const visible = [...comments, ...pending];
 
   return (
     <Stack gap="sm">
@@ -169,7 +172,7 @@ export function CommentThread({ comments, lines, reportId, viewer }: CommentThre
               </Text>
             ) : null}
 
-            <Button disabled={form.isSubmitting} size="xs" type="submit">
+            <Button disabled={form.isSubmitting || isPending} size="xs" type="submit">
               投稿する
             </Button>
           </Stack>
