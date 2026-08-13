@@ -62,6 +62,10 @@ const reportCoverEntries = {
   version: v.number(),
 };
 
+export const RequestChangesInputSchema = v.object({
+  reason: v.pipe(v.string(), v.trim(), v.minLength(1, "差し戻しの理由を入力してください")),
+});
+
 export const ReportSummarySchema = v.object({
   ...reportCoverEntries,
   lineCount: v.number(),
@@ -75,6 +79,7 @@ export const ReportDetailSchema = v.object({
 export type Client = v.InferOutput<typeof ClientSchema>;
 export type CreateReportInput = v.InferOutput<typeof CreateReportInputSchema>;
 export type CreateReportLineInput = v.InferOutput<typeof CreateReportLineInputSchema>;
+export type RequestChangesInput = v.InferOutput<typeof RequestChangesInputSchema>;
 export type ReportDetail = v.InferOutput<typeof ReportDetailSchema>;
 export type ReportLine = v.InferOutput<typeof ReportLineSchema>;
 export type ReportStatus = v.InferOutput<typeof ReportStatusSchema>;

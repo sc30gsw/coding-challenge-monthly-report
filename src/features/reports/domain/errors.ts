@@ -39,4 +39,21 @@ export class ReportNotVisible extends TaggedError("ReportNotVisible")<{
   reportId: string;
 }> {}
 
-export type ReportError = ClientNotFound | ReportNotFound | ReportNotVisible | TransitionNotAllowed;
+/**
+ * その明細の担当ではない、という拒否です。
+ *
+ * 報告書が見えることと、その行に触れることは別です。営業には報告書を全体として
+ * 見せる一方、承認と差し戻しは自分の担当行にだけ許します。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ */
+export class NotLineOwner extends TaggedError("NotLineOwner")<{
+  lineId: string;
+  message: string;
+}> {}
+
+export type ReportError =
+  | ClientNotFound
+  | NotLineOwner
+  | ReportNotFound
+  | ReportNotVisible
+  | TransitionNotAllowed;

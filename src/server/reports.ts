@@ -9,6 +9,7 @@ import {
   CreateReportLineInputSchema,
   ReportDetailSchema,
   ReportSummarySchema,
+  RequestChangesInputSchema,
 } from "~/features/reports/schemas/report-schema";
 import { auth } from "~/server/auth";
 import * as service from "~/server/reports-service";
@@ -35,6 +36,7 @@ function toHttpFailure(error: ReportError) {
 
   return matchError(error, {
     ClientNotFound: () => ({ body, status: 404 as const }),
+    NotLineOwner: () => ({ body, status: 403 as const }),
     ReportNotFound: () => ({ body, status: 404 as const }),
     ReportNotVisible: () => ({ body, status: 403 as const }),
     TransitionNotAllowed: () => ({ body, status: 409 as const }),
@@ -141,6 +143,54 @@ export const reportRoutes = new Elysia({ name: "reports" })
         tags: ["Reports"],
       },
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
+    },
+  )
+  .post(
+    "/lines/:lineId/approve",
+    async ({ params, status, user }) => {
+      const approved = await service.approveLine(user, params.lineId);
+
+      if (Result.isError(approved)) {
+        const failure = toHttpFailure(approved.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return approved.value;
+    },
+    {
+      detail: {
+        description: "担当する明細の内容に問題がないことを表明します。",
+        summary: "明細の承認",
+        tags: ["Reports"],
+      },
+      response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
+      session: true,
+    },
+  )
+  .post(
+    "/lines/:lineId/changes",
+    async ({ body, params, status, user }) => {
+      const sent = await service.requestLineChanges(user, params.lineId, body.reason);
+
+      if (Result.isError(sent)) {
+        const failure = toHttpFailure(sent.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return sent.value;
+    },
+    {
+      body: RequestChangesInputSchema,
+      detail: {
+        description:
+          "担当する明細を理由つきで差し戻します。報告書の状態は変わりません（明細ごとに承認と差し戻しが混在するため）。",
+        summary: "明細の差し戻し",
+        tags: ["Reports"],
+      },
+      response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
+      session: true,
     },
   )
   .post(

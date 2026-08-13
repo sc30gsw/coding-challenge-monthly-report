@@ -48,7 +48,7 @@ afterEach(() => {
 
 describe("明細一覧", () => {
   it("自分の担当行だけに印がつく", async () => {
-    await renderWithProviders(<ReportLineTable lines={lines} viewerId={MINE} />);
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
 
     const mine = screen.getByRole("row", { name: /自分の案件/ });
     const theirs = screen.getByRole("row", { name: /同僚の案件/ });
@@ -59,9 +59,44 @@ describe("明細一覧", () => {
 
   it("担当外の明細も読める", async () => {
     // 自分の行だけに絞ると、金額合計が何を指すのか分からないまま承認することになります。
-    await renderWithProviders(<ReportLineTable lines={lines} viewerId={MINE} />);
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
 
     expect(screen.getByText("同僚の案件")).toBeInTheDocument();
     expect(screen.getByText("鈴木 一郎")).toBeInTheDocument();
+  });
+});
+
+describe("確認の操作", () => {
+  it("確認できる状況では、自分の担当行にだけ操作が出る", async () => {
+    await renderWithProviders(<ReportLineTable canReview lines={lines} viewerId={MINE} />);
+
+    const mine = screen.getByRole("row", { name: /自分の案件/ });
+    const theirs = screen.getByRole("row", { name: /同僚の案件/ });
+
+    expect(within(mine).getByRole("button", { name: "承認" })).toBeInTheDocument();
+    expect(within(theirs).queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+  });
+
+  it("確認できない状況では、自分の行にも操作が出ない", async () => {
+    // 下書きや確定済みの報告書で承認ボタンが出ていると、押せない操作を提示することになります。
+    // なお、出さないことは防御ではありません。拒否するのはサーバーです。
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
+
+    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+  });
+
+  it("差し戻しの理由が表示される", async () => {
+    const sentBack = [
+      {
+        ...lines[0],
+        changeRequestReason: "金額が請求書と一致しません",
+        status: "changes_requested",
+      },
+      ...lines.slice(1),
+    ] as ReportDetail["lines"];
+
+    await renderWithProviders(<ReportLineTable canReview lines={sentBack} viewerId={MINE} />);
+
+    expect(screen.getByText("金額が請求書と一致しません")).toBeInTheDocument();
   });
 });

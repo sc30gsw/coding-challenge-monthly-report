@@ -9,6 +9,10 @@ import {
   ReportNotFound,
   ReportNotVisible,
 } from "~/features/reports/domain/errors";
+import {
+  approveLine as approveLineTransition,
+  requestChanges as requestChangesTransition,
+} from "~/features/reports/domain/line-transitions";
 import { requestReview as requestReviewTransition } from "~/features/reports/domain/transitions";
 import type {
   CreateReportInput,
@@ -239,4 +243,75 @@ export async function requestReview(reportId: string): Promise<Result<ReportSumm
   return updated
     ? Result.ok(updated)
     : Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
+}
+
+/** 明細と、その明細が属する報告書の状態をまとめて読みます。判定に両方が要るためです。 */
+async function findLineWithReportStatus(lineId: string) {
+  const [line] = await db
+    .select({
+      id: reportLines.id,
+      reportId: reportLines.reportId,
+      reportStatus: reports.status,
+      salesOwnerId: reportLines.salesOwnerId,
+      status: reportLines.status,
+    })
+    .from(reportLines)
+    .innerJoin(reports, eq(reports.id, reportLines.reportId))
+    .where(eq(reportLines.id, lineId))
+    .limit(1);
+
+  return line ?? null;
+}
+
+export async function approveLine(
+  actor: Viewer,
+  lineId: string,
+): Promise<Result<{ ok: true }, ReportError>> {
+  const line = await findLineWithReportStatus(lineId);
+
+  if (!line) {
+    return Result.err(new ReportNotFound({ message: "明細が見つかりません", reportId: lineId }));
+  }
+
+  const approved = approveLineTransition(line, actor);
+
+  if (Result.isError(approved)) {
+    return approved;
+  }
+
+  await db
+    .update(reportLines)
+    .set({ status: approved.value.status, updatedAt: new Date() })
+    .where(eq(reportLines.id, lineId));
+
+  return Result.ok({ ok: true as const });
+}
+
+export async function requestLineChanges(
+  actor: Viewer,
+  lineId: string,
+  reason: string,
+): Promise<Result<{ ok: true }, ReportError>> {
+  const line = await findLineWithReportStatus(lineId);
+
+  if (!line) {
+    return Result.err(new ReportNotFound({ message: "明細が見つかりません", reportId: lineId }));
+  }
+
+  const sent = requestChangesTransition(line, actor, reason);
+
+  if (Result.isError(sent)) {
+    return sent;
+  }
+
+  await db
+    .update(reportLines)
+    .set({
+      changeRequestReason: sent.value.changeRequestReason,
+      status: sent.value.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(reportLines.id, lineId));
+
+  return Result.ok({ ok: true as const });
 }

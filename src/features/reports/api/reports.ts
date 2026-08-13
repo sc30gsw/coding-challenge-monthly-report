@@ -1,6 +1,7 @@
 import type {
   CreateReportInput,
   CreateReportLineInput,
+  RequestChangesInput,
 } from "~/features/reports/schemas/report-schema";
 import { getApi } from "~/lib/api/client";
 import { toResult } from "~/lib/api/result";
@@ -35,4 +36,12 @@ export async function addReportLine(reportId: string, input: CreateReportLineInp
 
 export async function requestReview(reportId: string) {
   return toResult(await getApi().reports({ reportId }).review.post());
+}
+
+export async function approveLine(lineId: string) {
+  return toResult(await getApi().lines({ lineId }).approve.post());
+}
+
+export async function requestLineChanges(lineId: string, input: RequestChangesInput) {
+  return toResult(await getApi().lines({ lineId }).changes.post(input));
 }

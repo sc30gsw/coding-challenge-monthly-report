@@ -342,3 +342,119 @@ describe("営業から見える範囲", () => {
     expect(res.json<ReportSummary[]>()).toHaveLength(1);
   });
 });
+
+describe("明細の承認と差し戻し", () => {
+  async function reportInReview() {
+    const report = await createDraft();
+
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "50000", projectName: "自分の案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+    await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    const detail = await call(`/reports/${report.id}`, { cookie: admin });
+    const [line] = detail.json<ReportDetail>().lines;
+
+    if (!line) {
+      throw new Error("fixture did not create a line");
+    }
+
+    return { line, reportId: report.id };
+  }
+
+  it("担当営業が自分の明細を承認できる", async () => {
+    const { line, reportId } = await reportInReview();
+
+    const res = await call(`/lines/${line.id}/approve`, { cookie: sales, method: "POST" });
+
+    expect(res.status).toBe(200);
+
+    const detail = await call(`/reports/${reportId}`, { cookie: admin });
+
+    expect(detail.json<ReportDetail>().lines[0]?.status).toBe("approved");
+  });
+
+  it("担当営業が理由をつけて差し戻せる", async () => {
+    const { line, reportId } = await reportInReview();
+
+    const res = await call(`/lines/${line.id}/changes`, {
+      body: { reason: "金額が請求書と一致しません" },
+      cookie: sales,
+      method: "POST",
+    });
+
+    expect(res.status).toBe(200);
+
+    const detail = await call(`/reports/${reportId}`, { cookie: admin });
+    const [updated] = detail.json<ReportDetail>().lines;
+
+    expect(updated?.status).toBe("changes_requested");
+    // 管理者が「何を直せばよいか」を読めることが、差し戻しの目的です。
+    expect(updated?.changeRequestReason).toBe("金額が請求書と一致しません");
+  });
+
+  it("差し戻しても報告書の状態は確認中のまま", async () => {
+    const { line, reportId } = await reportInReview();
+
+    await call(`/lines/${line.id}/changes`, {
+      body: { reason: "金額が違います" },
+      cookie: sales,
+      method: "POST",
+    });
+
+    const detail = await call(`/reports/${reportId}`, { cookie: admin });
+
+    expect(detail.json<ReportDetail>().status).toBe("in_review");
+  });
+
+  it("理由なしの差し戻しは受け付けない", async () => {
+    const { line } = await reportInReview();
+
+    const res = await call(`/lines/${line.id}/changes`, {
+      body: { reason: "   " },
+      cookie: sales,
+      method: "POST",
+    });
+
+    expect(res.status).toBe(422);
+  });
+
+  it("担当でない営業は API を直接叩いても承認できない", async () => {
+    // 画面にボタンを出さないことは防御ではありません。
+    const other = await createSalesUser("担当外 営業");
+    const otherCookie = await signInAs(other.id);
+    const { line } = await reportInReview();
+
+    const res = await call(`/lines/${line.id}/approve`, { cookie: otherCookie, method: "POST" });
+
+    expect(res.status).toBe(403);
+    expect(res.json<{ tag: string }>().tag).toBe("NotLineOwner");
+  });
+
+  it("管理者は承認できない", async () => {
+    const { line } = await reportInReview();
+
+    const res = await call(`/lines/${line.id}/approve`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("下書きの報告書の明細は承認できない", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "確認依頼前", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const detail = await call(`/reports/${report.id}`, { cookie: admin });
+    const [line] = detail.json<ReportDetail>().lines;
+
+    const res = await call(`/lines/${line?.id}/approve`, { cookie: sales, method: "POST" });
+
+    expect(res.status).toBe(409);
+    expect(res.json<{ tag: string }>().tag).toBe("TransitionNotAllowed");
+  });
+});

@@ -14,4 +14,5 @@ export const LoginInputSchema = v.object({
   userId: v.pipe(v.string(), v.uuid("ユーザーを選択してください")),
 });
 
+export type Role = v.InferOutput<typeof RoleSchema>;
 export type SessionUser = v.InferOutput<typeof SessionUserSchema>;

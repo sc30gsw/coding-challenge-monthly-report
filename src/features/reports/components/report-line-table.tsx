@@ -1,8 +1,11 @@
-import { Badge, Group, Table, Text } from "@mantine/core";
+import { Badge, Group, Stack, Table, Text } from "@mantine/core";
 
+import { LineReviewActions } from "~/features/reports/components/line-review-actions";
 import type { ReportDetail, ReportLine } from "~/features/reports/schemas/report-schema";
 
 type ReportLineTableProps = {
+  /** 自分の担当行に確認の操作を出すかどうか。報告書が確認中で、見ている人が営業のときだけです。 */
+  canReview: boolean;
   lines: ReportDetail["lines"];
   /** いま見ている人。自分の担当行に印をつけるために使います。 */
   viewerId: string;
@@ -24,7 +27,7 @@ const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" 
  * 印が無いとどれを確認すべきかが読み取れません。
  * @see docs/adr/0010-sales-owner-lives-on-the-line.md
  */
-export function ReportLineTable({ lines, viewerId }: ReportLineTableProps) {
+export function ReportLineTable({ canReview, lines, viewerId }: ReportLineTableProps) {
   if (lines.length === 0) {
     return (
       <Text c="dimmed" size="sm">
@@ -41,6 +44,7 @@ export function ReportLineTable({ lines, viewerId }: ReportLineTableProps) {
           <Table.Th>担当営業</Table.Th>
           <Table.Th>確認状況</Table.Th>
           <Table.Th className="text-right">金額</Table.Th>
+          <Table.Th />
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
@@ -57,9 +61,26 @@ export function ReportLineTable({ lines, viewerId }: ReportLineTableProps) {
                 ) : null}
               </Group>
             </Table.Td>
-            <Table.Td>{LINE_STATUS_LABELS[line.status]}</Table.Td>
+            <Table.Td>
+              <Stack gap={2}>
+                <Text size="sm">{LINE_STATUS_LABELS[line.status]}</Text>
+                {/* 差し戻しの理由は、管理者が何を直すべきかを知るための情報です。
+                    編集で未確認に戻ったあとも履歴として残ります。 */}
+                {line.changeRequestReason ? (
+                  <Text c="orange.7" size="xs">
+                    {line.status === "changes_requested" ? "" : "直近の差し戻し: "}
+                    {line.changeRequestReason}
+                  </Text>
+                ) : null}
+              </Stack>
+            </Table.Td>
             <Table.Td className="text-right tabular-nums">
               {yen.format(Number(line.amount))}
+            </Table.Td>
+            <Table.Td>
+              {canReview && line.salesOwner.id === viewerId ? (
+                <LineReviewActions lineId={line.id} />
+              ) : null}
             </Table.Td>
           </Table.Tr>
         ))}

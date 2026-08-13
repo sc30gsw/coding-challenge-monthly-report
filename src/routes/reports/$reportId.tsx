@@ -89,7 +89,11 @@ function ReportDetailPage() {
             明細
           </Text>
 
-          <ReportLineTable lines={report.lines} viewerId={user.id} />
+          <ReportLineTable
+            canReview={!isAdmin && report.status === "in_review"}
+            lines={report.lines}
+            viewerId={user.id}
+          />
         </Stack>
 
         {isAdmin && report.status === "draft" ? (
