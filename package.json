@@ -16,7 +16,7 @@
     "fallow": "vp exec fallow dead-code",
     "fix": "vp check --fix",
     "preview": "vp preview",
-    "seed": "tsx src/db/seed.ts",
+    "seed": "tsx src/db/run-seed.ts",
     "setup": "bash scripts/setup.sh",
     "test": "vp test",
     "type-check": "vp check --no-lint"

@@ -1,5 +1,6 @@
 import { db } from "~/db/client";
 import { clients, users } from "~/db/schema";
+import { truncateAll } from "~/db/truncate";
 
 /**
  * 採点者が clone 直後に業務フローを触れるよう、必要な登場人物を投入します。
@@ -18,15 +19,14 @@ export const SEED_USERS = [
   { email: "sales-suzuki@example.com", name: "鈴木 一郎", role: "sales" },
 ] as const satisfies Pick<typeof users.$inferSelect, "email" | "name" | "role">[];
 
-const SEED_CLIENTS = [
+export const SEED_CLIENTS = [
   { defaultAddressee: "経理部 ご担当者様", name: "株式会社アオイ商事" },
   { defaultAddressee: "管理本部 ご担当者様", name: "ミドリ工業株式会社" },
   { defaultAddressee: "総務部 ご担当者様", name: "株式会社シオカゼ" },
 ] as const satisfies Pick<typeof clients.$inferSelect, "defaultAddressee" | "name">[];
 
-async function seed() {
-  await db.delete(clients);
-  await db.delete(users);
+export async function seed() {
+  await truncateAll();
 
   // ユーザーと取引先は互いに依存しないので同時に入れます。
   const [insertedUsers, insertedClients] = await Promise.all([
@@ -44,6 +44,3 @@ async function seed() {
     `seeded ${insertedUsers.length} users and ${insertedClients.length} clients\n`,
   );
 }
-
-await seed();
-process.exit(0);
