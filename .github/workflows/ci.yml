@@ -12,6 +12,26 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      # テストは実際の PostgreSQL に対して走ります。API 統合テストが認可と DB 制約
+      # （確定後の不変性トリガ、系列の部分ユニーク）まで通すため、スタブでは代われません。
+      # イメージは docker-compose.yml と揃えます。
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          # ローカルの compose は開発用とテスト用の 2 つを作りますが、CI が触るのは
+          # テスト用だけです。`src/test/setup.ts` が「名前が _test で終わること」を
+          # 求めるので、その名前で作ります。
+          POSTGRES_DB: monthly_report_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d monthly_report_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     # The committed lockfile is reviewed and pinned with integrity hashes, so CI
     # trusts it and skips re-applying the time-based supply-chain policies
     # (minimumReleaseAge / trustPolicy in pnpm-workspace.yaml) on every install.
@@ -20,14 +40,26 @@ jobs:
     # freshly published package (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION).
     env:
       PNPM_CONFIG_TRUST_LOCKFILE: "true"
+      # CI には .env を置かないので、`src/server/env.ts` が読む値をここで渡します。
+      # DATABASE_URL も同じテスト用データベースを指します。CI が行うのはテストと
+      # ビルドだけで、アプリを配信する接続先が要らないためです。
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/monthly_report_test
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/monthly_report_test
     steps:
       - uses: actions/checkout@v4
+      # Cookie 署名鍵は実行のたびに使い捨てで作ります。`vp run setup` がローカルで
+      # 行うのと同じことです。リポジトリに鍵らしき文字列を置かずに済みます。
+      - name: Generate a throwaway cookie secret
+        run: echo "COOKIE_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
       # Installs Vite+, sets up Node.js (from .node-version) and the package
       # manager, caches installs, and runs `vp install` (run-install defaults to true).
       - uses: voidzero-dev/setup-vp@v1
         with:
           node-version-file: .node-version
           cache: true
+      # マイグレーションが当たらないとテストは 1 件も走れません。ここで失敗すれば
+      # マイグレーション自体の破損として読めます。
+      - run: vp run db:migrate
       - run: vp check
       - run: vp test
       - run: vp build
