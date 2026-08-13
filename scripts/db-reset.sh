@@ -14,7 +14,6 @@ USE_DOCKER=1
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 info() { printf '    %s\n' "$1"; }
-warn() { printf '\033[33m    ! %s\033[0m\n' "$1"; }
 
 # drizzle-kit は Vite を通らないため .env を読みません。
 # 設定ファイルを環境に依存させたくないので、読み込みはここで行います。
@@ -45,10 +44,6 @@ if [ -n "${TEST_DATABASE_URL:-}" ]; then
 fi
 
 step "seed を流し込みます"
-if [ -f src/db/seed.ts ]; then
-  vp run seed
-  info "完了"
-else
-  warn "src/db/seed.ts がまだありません。seed を飛ばします"
-  warn "各状態のサンプルは issue #11 で入ります"
-fi
+# 既存を消してから入れ直すので、何度実行しても同じ結果になります。
+vp run seed
+info "完了"
