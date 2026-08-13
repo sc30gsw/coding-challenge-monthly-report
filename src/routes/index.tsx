@@ -1,40 +1,8 @@
-import { Alert, Stack, Text, Title } from "@mantine/core";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/** 起点は報告書の一覧です。中身はロールごとに変わります（管理者は全件、営業は担当分）。 */
 export const Route = createFileRoute("/")({
   beforeLoad: ({ context }) => {
-    if (!context.user) {
-      throw redirect({ to: "/login" });
-    }
-
-    // 管理者は報告書の一覧が起点です。営業向けの一覧は issue #5 で入ります。
-    if (context.user.role === "admin") {
-      throw redirect({ to: "/reports" });
-    }
-
-    return { user: context.user };
+    throw redirect({ to: context.user ? "/reports" : "/login" });
   },
-  component: Home,
 });
-
-function Home() {
-  const { user } = Route.useRouteContext();
-
-  return (
-    <main className="mx-auto max-w-3xl p-8">
-      <Stack gap="md">
-        <Title order={1} size="h2">
-          月次報告書
-        </Title>
-        <Text>
-          {user.name} さん（{user.role === "admin" ? "管理者" : "営業"}）としてログインしています。
-        </Text>
-        <Alert color="gray" title="ここから先は未実装です" variant="light">
-          <Text size="sm">
-            報告書の一覧と詳細は issue #4 以降で入ります。いまはログインとロール解決までです。
-          </Text>
-        </Alert>
-      </Stack>
-    </main>
-  );
-}

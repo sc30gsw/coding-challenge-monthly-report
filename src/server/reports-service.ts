@@ -1,9 +1,15 @@
 import { Result } from "better-result";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, exists, sql } from "drizzle-orm";
 
 import { db } from "~/db/client";
 import { clients, reportLines, reports, users } from "~/db/schema";
-import { ClientNotFound, type ReportError, ReportNotFound } from "~/features/reports/domain/errors";
+import {
+  ClientNotFound,
+  type ReportError,
+  ReportNotFound,
+  ReportNotVisible,
+} from "~/features/reports/domain/errors";
+import { requestReview as requestReviewTransition } from "~/features/reports/domain/transitions";
 import type {
   CreateReportInput,
   CreateReportLineInput,
@@ -110,9 +116,7 @@ export async function createReport(
     : Result.err(new ReportNotFound({ message: "作成した報告書を読み出せません", reportId: id }));
 }
 
-export async function getReportDetail(
-  reportId: string,
-): Promise<Result<ReportDetail, ReportError>> {
+async function getReportDetail(reportId: string): Promise<Result<ReportDetail, ReportError>> {
   const summary = await findSummary(reportId);
 
   if (!summary) {
@@ -157,4 +161,82 @@ export async function addReportLine(
   });
 
   return Result.ok({ ok: true as const });
+}
+
+type Viewer = {
+  id: string;
+  role: "admin" | "sales";
+};
+
+/**
+ * 「自分に関係する報告書」は、担当する明細を 1 件以上含むこと、として導出します。
+ * report 側に担当者を持たせないので、明細の付け替えと一覧が必ず一致します。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ */
+function ownsAnyLine(viewerId: string) {
+  return exists(
+    db
+      .select({ one: sql`1` })
+      .from(reportLines)
+      .where(and(eq(reportLines.reportId, reports.id), eq(reportLines.salesOwnerId, viewerId))),
+  );
+}
+
+export async function listReportsFor(viewer: Viewer) {
+  const rows = await db
+    .select(coverColumns)
+    .from(reports)
+    .leftJoin(reportLines, eq(reportLines.reportId, reports.id))
+    .where(viewer.role === "admin" ? undefined : ownsAnyLine(viewer.id))
+    .groupBy(reports.id)
+    .orderBy(desc(reports.createdAt));
+
+  return rows.map((row) => ({ ...row, targetMonth: toTargetMonth(row.targetMonth) }));
+}
+
+/**
+ * 営業には、関係する報告書を**全体として**見せます。自分の明細だけに絞ると、
+ * 金額合計や他の明細が見えないまま承認することになり、確認の意味が痩せます。
+ * 触れるかどうかは明細単位で別に判定します（issue #6）。
+ */
+export async function getReportDetailFor(
+  viewer: Viewer,
+  reportId: string,
+): Promise<Result<ReportDetail, ReportError>> {
+  if (viewer.role === "sales") {
+    const [visible] = await db
+      .select({ id: reports.id })
+      .from(reports)
+      .where(and(eq(reports.id, reportId), ownsAnyLine(viewer.id)))
+      .limit(1);
+
+    if (!visible) {
+      return Result.err(new ReportNotVisible({ message: "この報告書は担当外です", reportId }));
+    }
+  }
+
+  return await getReportDetail(reportId);
+}
+
+/** 確認依頼。可否の判断はドメインの純粋関数が持ち、ここは永続化だけを行います。 */
+export async function requestReview(reportId: string): Promise<Result<ReportSummary, ReportError>> {
+  const summary = await findSummary(reportId);
+
+  if (!summary) {
+    return Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
+  }
+
+  const moved = requestReviewTransition(summary);
+
+  if (Result.isError(moved)) {
+    return moved;
+  }
+
+  await db.update(reports).set({ status: moved.value.status }).where(eq(reports.id, reportId));
+
+  const updated = await findSummary(reportId);
+
+  return updated
+    ? Result.ok(updated)
+    : Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
 }

@@ -41,8 +41,16 @@ describe("報告書の作成フォーム", () => {
       />,
     );
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "取引先" }), actors.client.id);
-    await user.type(screen.getByLabelText("対象月"), "2026-08");
+    // Mantine の Select と MonthPickerInput は、素の select や month 入力と違って
+    // 「開いてから選ぶ」操作になります。ユーザーの手順どおりに触ります。
+    await user.click(screen.getByLabelText("取引先", { selector: "input:not([type=hidden])" }));
+    await user.click(await screen.findByText(actors.client.name));
+
+    await user.click(
+      screen.getByLabelText("対象月", { selector: "button, input:not([type=hidden])" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "8月" }));
+
     await user.click(screen.getByRole("button", { name: "下書きを作成" }));
 
     await waitFor(async () => {
@@ -50,7 +58,7 @@ describe("報告書の作成フォーム", () => {
 
       expect(reports).toHaveLength(1);
       expect(reports[0]?.clientName).toBe(actors.client.name);
-      expect(reports[0]?.targetMonth).toBe("2026-08");
+      expect(reports[0]?.targetMonth?.endsWith("-08")).toBe(true);
     });
   });
 

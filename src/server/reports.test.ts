@@ -5,7 +5,7 @@ import { db } from "~/db/client";
 import { clients } from "~/db/schema";
 import type { ReportDetail, ReportSummary } from "~/features/reports/schemas/report-schema";
 import { call, signInAs } from "~/test/api";
-import { createActors } from "~/test/fixtures";
+import { createActors, createSalesUser } from "~/test/fixtures";
 
 let actors: Awaited<ReturnType<typeof createActors>>;
 let admin: string;
@@ -221,5 +221,124 @@ describe("拒否の理由", () => {
 
     expect(res.status).toBe(404);
     expect(res.json<{ tag: string }>().tag).toBe("ClientNotFound");
+  });
+});
+
+describe("確認依頼", () => {
+  it("管理者が下書きを確認中にできる", async () => {
+    const report = await createDraft();
+
+    const res = await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(200);
+    expect(res.json<ReportSummary>().status).toBe("in_review");
+  });
+
+  it("確認中の報告書をもう一度確認依頼できない", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    const res = await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    // 「いまの状態ではできない」は 404 でも 403 でもなく 409 です。
+    expect(res.status).toBe(409);
+    expect(res.json<{ tag: string }>().tag).toBe("TransitionNotAllowed");
+  });
+
+  it("営業は確認依頼できない", async () => {
+    const report = await createDraft();
+
+    const res = await call(`/reports/${report.id}/review`, { cookie: sales, method: "POST" });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("下書きへ戻す操作は無い", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    const res = await call(`/reports/${report.id}/draft`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("営業から見える範囲", () => {
+  it("自分が担当する明細を含む報告書だけが一覧に出る", async () => {
+    const other = await createSalesUser("担当外 営業");
+
+    const mine = await createDraft();
+    await call(`/reports/${mine.id}/lines`, {
+      body: { amount: "1000", projectName: "自分の案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const theirs = await createDraft();
+    await call(`/reports/${theirs.id}/lines`, {
+      body: { amount: "2000", projectName: "他人の案件", salesOwnerId: other.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const res = await call("/reports", { cookie: sales });
+    const list = res.json<ReportSummary[]>();
+
+    expect(list).toHaveLength(1);
+    expect(list[0]?.id).toBe(mine.id);
+  });
+
+  it("担当外の報告書は API を直接叩いても読めない", async () => {
+    // 画面に出さないことは防御ではありません。拒否するのはサーバーです。
+    const other = await createSalesUser("担当外 営業");
+    const theirs = await createDraft();
+    await call(`/reports/${theirs.id}/lines`, {
+      body: { amount: "2000", projectName: "他人の案件", salesOwnerId: other.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const res = await call(`/reports/${theirs.id}`, { cookie: sales });
+
+    expect(res.status).toBe(403);
+    expect(res.json<{ tag: string }>().tag).toBe("ReportNotVisible");
+  });
+
+  it("関係する報告書は、他人の明細も含めて全体を読める", async () => {
+    // 自分の行だけに絞ると、金額合計が何を指すのか分からないまま承認することになります。
+    const other = await createSalesUser("同僚 営業");
+    const report = await createDraft();
+
+    for (const [projectName, ownerId] of [
+      ["自分の案件", actors.sales.id],
+      ["同僚の案件", other.id],
+    ] as const) {
+      await call(`/reports/${report.id}/lines`, {
+        body: { amount: "5000", projectName, salesOwnerId: ownerId },
+        cookie: admin,
+        method: "POST",
+      });
+    }
+
+    const res = await call(`/reports/${report.id}`, { cookie: sales });
+    const detail = res.json<ReportDetail>();
+
+    expect(res.status).toBe(200);
+    expect(detail.lines).toHaveLength(2);
+    expect(detail.totalAmount).toBe("10000.00");
+  });
+
+  it("管理者の一覧は担当に関わらず全件", async () => {
+    const other = await createSalesUser("担当外 営業");
+    const report = await createDraft();
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "2000", projectName: "他人の案件", salesOwnerId: other.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const res = await call("/reports", { cookie: admin });
+
+    expect(res.json<ReportSummary[]>()).toHaveLength(1);
   });
 });

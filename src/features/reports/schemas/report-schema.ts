@@ -6,12 +6,12 @@ import * as v from "valibot";
  * @see docs/adr/0004-valibot-and-formisch-for-forms.md
  */
 
-export const ReportStatusSchema = v.picklist(["draft", "in_review", "confirmed", "superseded"]);
+const ReportStatusSchema = v.picklist(["draft", "in_review", "confirmed", "superseded"]);
 
-export const ReportLineStatusSchema = v.picklist(["pending", "approved", "changes_requested"]);
+const ReportLineStatusSchema = v.picklist(["pending", "approved", "changes_requested"]);
 
 /** 対象月は月単位です。日は業務上の意味を持たないので受け取りません。 */
-export const TargetMonthSchema = v.pipe(
+const TargetMonthSchema = v.pipe(
   v.string(),
   v.regex(/^\d{4}-(0[1-9]|1[0-2])$/, "対象月は YYYY-MM の形式で指定してください"),
 );
@@ -20,7 +20,7 @@ export const TargetMonthSchema = v.pipe(
  * 金額は文字列で扱います。丸め誤差が出る型で取引先に出す数字を持ちたくないためで、
  * DB 側も numeric(14,2) です。
  */
-export const AmountSchema = v.pipe(
+const AmountSchema = v.pipe(
   v.string(),
   v.regex(/^\d+(\.\d{1,2})?$/, "金額は 0 以上の数値で入力してください"),
 );
@@ -42,7 +42,7 @@ export const CreateReportLineInputSchema = v.object({
   salesOwnerId: v.pipe(v.string(), v.uuid("担当営業を選択してください")),
 });
 
-export const ReportLineSchema = v.object({
+const ReportLineSchema = v.object({
   amount: v.string(),
   changeRequestReason: v.nullable(v.string()),
   id: v.string(),

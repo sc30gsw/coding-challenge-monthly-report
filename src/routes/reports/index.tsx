@@ -12,18 +12,17 @@ export const Route = createFileRoute("/reports/")({
       throw redirect({ to: "/login" });
     }
 
-    // 営業向けの一覧は issue #5 で入ります。判定はサーバー側にもあります。
-    if (context.user.role !== "admin") {
-      throw redirect({ to: "/" });
-    }
+    return { user: context.user };
   },
   component: ReportsPage,
-  loader: async () => {
-    const [clients, reports] = await Promise.all([fetchClients(), fetchReports()]);
+  loader: async ({ context }) => {
+    const reports = orThrow(await fetchReports());
 
-    // どちらも管理者にしか届かない経路です。ここで失敗するのは権限か障害なので、
-    // 空配列に潰さずエラー画面へ出します。
-    return { clients: orThrow(clients), reports: orThrow(reports) };
+    // 取引先マスタは報告書を作るときの入力補助なので、管理者のときだけ読みます。
+    // 営業が叩いてもサーバーが 403 で拒否します。
+    const clients = context.user?.role === "admin" ? orThrow(await fetchClients()) : [];
+
+    return { clients, reports };
   },
 });
 
@@ -31,6 +30,8 @@ const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" 
 
 function ReportsPage() {
   const { clients, reports } = Route.useLoaderData();
+  const { user } = Route.useRouteContext();
+  const isAdmin = user.role === "admin";
 
   return (
     <main className="mx-auto max-w-5xl p-8">
@@ -39,17 +40,23 @@ function ReportsPage() {
           月次報告書
         </Title>
 
-        <Card padding="md" radius="md" withBorder>
-          <Stack gap="sm">
-            <Text fw={600} size="sm">
-              新しい報告書
-            </Text>
-            <CreateReportForm clients={clients} />
-          </Stack>
-        </Card>
+        {isAdmin ? (
+          <Card padding="md" radius="md" withBorder>
+            <Stack gap="sm">
+              <Text fw={600} size="sm">
+                新しい報告書
+              </Text>
+              <CreateReportForm clients={clients} />
+            </Stack>
+          </Card>
+        ) : null}
 
         {reports.length === 0 ? (
-          <Text c="dimmed">まだ報告書がありません。上のフォームから作成してください。</Text>
+          <Text c="dimmed">
+            {isAdmin
+              ? "まだ報告書がありません。上のフォームから作成してください。"
+              : "確認をお願いされている報告書はありません。"}
+          </Text>
         ) : (
           <Table highlightOnHover striped>
             <Table.Thead>

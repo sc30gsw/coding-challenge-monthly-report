@@ -4,3 +4,6 @@
  * clobber Mantine component styles. Do not add a bare `@import "tailwindcss"`.
  */
 @import "tailwind-preset-mantine";
+
+/* Date pickers ship their own styles; keep them inside the same `mantine` layer. */
+@import "@mantine/dates/styles.layer.css" layer(mantine);

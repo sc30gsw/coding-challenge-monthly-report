@@ -25,15 +25,30 @@ import * as service from "~/server/reports-service";
 /**
  * 失敗の種類ごとの見せ方です。`matchError` は網羅を要求するので、
  * 状態遷移の拒否が増えたときに、ここで型エラーとして気づけます。
+ *
+ * - 404: 存在しない
+ * - 403: 存在するが、その人には見せない
+ * - 409: 存在も権限もあるが、いまの状態ではできない
  */
-function toErrorBody(error: ReportError) {
+function toHttpFailure(error: ReportError) {
+  const body = { message: error.message, tag: error._tag };
+
   return matchError(error, {
-    ClientNotFound: (found) => ({ message: found.message, tag: found._tag }),
-    ReportNotFound: (found) => ({ message: found.message, tag: found._tag }),
+    ClientNotFound: () => ({ body, status: 404 as const }),
+    ReportNotFound: () => ({ body, status: 404 as const }),
+    ReportNotVisible: () => ({ body, status: 403 as const }),
+    TransitionNotAllowed: () => ({ body, status: 409 as const }),
   });
 }
 
 const ErrorBodySchema = v.object({ message: v.string(), tag: v.string() });
+
+/** 失敗しうるルートは、この 3 つのステータスを宣言しておきます。 */
+const failureResponses = {
+  403: ErrorBodySchema,
+  404: ErrorBodySchema,
+  409: ErrorBodySchema,
+};
 
 export const reportRoutes = new Elysia({ name: "reports" })
   .use(auth)
@@ -46,14 +61,15 @@ export const reportRoutes = new Elysia({ name: "reports" })
     },
     response: v.array(ClientSchema),
   })
-  .get("/reports", async () => await service.listReports(), {
-    admin: true,
+  .get("/reports", async ({ user }) => await service.listReportsFor(user), {
     detail: {
-      description: "管理者は全ての報告書を一覧できます。",
+      description:
+        "管理者は全ての報告書を、営業は自分が担当する明細を含む報告書だけを一覧できます。",
       summary: "報告書の一覧",
       tags: ["Reports"],
     },
     response: v.array(ReportSummarySchema),
+    session: true,
   })
   .post(
     "/reports",
@@ -61,7 +77,9 @@ export const reportRoutes = new Elysia({ name: "reports" })
       const created = await service.createReport(body);
 
       if (Result.isError(created)) {
-        return status(404, toErrorBody(created.error));
+        const failure = toHttpFailure(created.error);
+
+        return status(failure.status, failure.body);
       }
 
       return created.value;
@@ -74,29 +92,31 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "報告書の作成",
         tags: ["Reports"],
       },
-      response: { 200: ReportSummarySchema, 404: ErrorBodySchema },
+      response: { 200: ReportSummarySchema, ...failureResponses },
     },
   )
   .get(
     "/reports/:reportId",
-    async ({ params, status }) => {
-      const detail = await service.getReportDetail(params.reportId);
+    async ({ params, status, user }) => {
+      const detail = await service.getReportDetailFor(user, params.reportId);
 
       if (Result.isError(detail)) {
-        return status(404, toErrorBody(detail.error));
+        const failure = toHttpFailure(detail.error);
+
+        return status(failure.status, failure.body);
       }
 
       return detail.value;
     },
     {
-      admin: true,
       detail: {
-        description: "表紙と明細を返します。",
+        description: "表紙と明細を返します。営業は担当する明細を含む報告書だけを読めます。",
         summary: "報告書の詳細",
         tags: ["Reports"],
       },
       // ステータスごとに宣言します。単一スキーマだと 200 しか返せません。
-      response: { 200: ReportDetailSchema, 404: ErrorBodySchema },
+      response: { 200: ReportDetailSchema, ...failureResponses },
+      session: true,
     },
   )
   .post(
@@ -105,7 +125,9 @@ export const reportRoutes = new Elysia({ name: "reports" })
       const added = await service.addReportLine(params.reportId, body);
 
       if (Result.isError(added)) {
-        return status(404, toErrorBody(added.error));
+        const failure = toHttpFailure(added.error);
+
+        return status(failure.status, failure.body);
       }
 
       return added.value;
@@ -118,6 +140,30 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "明細の追加",
         tags: ["Reports"],
       },
-      response: { 200: v.object({ ok: v.literal(true) }), 404: ErrorBodySchema },
+      response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
+    },
+  )
+  .post(
+    "/reports/:reportId/review",
+    async ({ params, status }) => {
+      const moved = await service.requestReview(params.reportId);
+
+      if (Result.isError(moved)) {
+        const failure = toHttpFailure(moved.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return moved.value;
+    },
+    {
+      admin: true,
+      detail: {
+        description:
+          "下書きを確認中にします。担当営業が明細を確認できるようになります。下書きへ戻す操作はありません。",
+        summary: "確認依頼",
+        tags: ["Reports"],
+      },
+      response: { 200: ReportSummarySchema, ...failureResponses },
     },
   );

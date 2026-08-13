@@ -1,6 +1,6 @@
-import { Field, Form, useForm } from "@formisch/react";
+import { Field, Form, setInput, useForm } from "@formisch/react";
 import type { SubmitHandler } from "@formisch/react";
-import { Button, Group, NativeSelect, TextInput } from "@mantine/core";
+import { Button, Group, NumberInput, Select, TextInput } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
 
 import type { SessionUser } from "~/features/auth/schemas/session-schema";
@@ -12,7 +12,14 @@ type AddReportLineFormProps = {
   salesUsers: SessionUser[];
 };
 
-/** 担当営業は明細に紐づきます。「自分に関係する報告書」はここからのみ導出します。 */
+/**
+ * 担当営業は明細に紐づきます。「自分に関係する報告書」はここからのみ導出します。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ *
+ * 金額は桁区切りつきの数値入力にしています。取引先に出す数字なので、
+ * 入力時点で桁を読み違えないことが業務上の意味を持ちます。値は文字列のまま
+ * 扱い、浮動小数にはしません。
+ */
 export function AddReportLineForm({ reportId, salesUsers }: AddReportLineFormProps) {
   const form = useForm({ schema: CreateReportLineInputSchema });
   const router = useRouter();
@@ -32,6 +39,7 @@ export function AddReportLineForm({ reportId, salesUsers }: AddReportLineFormPro
               className="min-w-64"
               error={field.errors?.[0]}
               label="案件名"
+              placeholder="案件名を入力"
               value={field.input ?? ""}
             />
           )}
@@ -39,11 +47,16 @@ export function AddReportLineForm({ reportId, salesUsers }: AddReportLineFormPro
 
         <Field of={form} path={["amount"]}>
           {(field) => (
-            <TextInput
-              {...field.props}
+            <NumberInput
+              allowNegative={false}
+              decimalScale={2}
               error={field.errors?.[0]}
-              inputMode="decimal"
+              hideControls
               label="金額"
+              onChange={(value) => setInput(form, { input: String(value ?? ""), path: ["amount"] })}
+              placeholder="0"
+              prefix="¥"
+              thousandSeparator=","
               value={field.input ?? ""}
             />
           )}
@@ -51,16 +64,16 @@ export function AddReportLineForm({ reportId, salesUsers }: AddReportLineFormPro
 
         <Field of={form} path={["salesOwnerId"]}>
           {(field) => (
-            <NativeSelect
-              {...field.props}
+            <Select
               className="min-w-48"
-              data={[
-                { label: "担当営業を選択", value: "" },
-                ...salesUsers.map((user) => ({ label: user.name, value: user.id })),
-              ]}
+              clearable
+              data={salesUsers.map((user) => ({ label: user.name, value: user.id }))}
               error={field.errors?.[0]}
               label="担当営業"
-              value={field.input ?? ""}
+              onChange={(value) => setInput(form, { input: value ?? "", path: ["salesOwnerId"] })}
+              placeholder="担当営業を選択"
+              searchable
+              value={field.input || null}
             />
           )}
         </Field>

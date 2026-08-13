@@ -1,4 +1,6 @@
 import { MantineProvider } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
+import "dayjs/locale/ja";
 import {
   RouterProvider,
   createMemoryHistory,
@@ -27,6 +29,15 @@ const ORIGIN = "http://localhost";
  * `matchMedia` を使うため、これが無いと描画の時点で落ちます。
  * 部品側にテスト用の分岐を入れないよう、埋めるのはここだけにします。
  */
+if (typeof window !== "undefined" && typeof window.ResizeObserver !== "function") {
+  // Select などの浮動要素の位置決めに使われます。測る対象が無いので何もしない実装で足ります。
+  window.ResizeObserver = class {
+    disconnect() {}
+    observe() {}
+    unobserve() {}
+  };
+}
+
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
   window.matchMedia = (query: string) =>
     ({
@@ -122,9 +133,13 @@ export async function renderWithProviders(ui: ReactNode) {
     routeTree: rootRoute,
   });
 
+  // provider の構成はアプリ（`src/routes/__root.tsx`）と揃えます。ずれると、
+  // 日付の表記のような「アプリでは正しいのにテストでだけ違う」差が出ます。
   const result = render(
     <MantineProvider>
-      <RouterProvider router={router as never} />
+      <DatesProvider settings={{ firstDayOfWeek: 0, locale: "ja" }}>
+        <RouterProvider router={router as never} />
+      </DatesProvider>
     </MantineProvider>,
   );
 

@@ -1,5 +1,7 @@
 /// <reference types="vite-plus/client" />
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
+import "dayjs/locale/ja";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
@@ -48,13 +50,17 @@ function RootComponent() {
       </head>
       <body>
         <MantineProvider theme={theme}>
-          {user ? <SessionBar user={user} /> : null}
-          <Outlet />
-          {TanStackRouterDevtools ? (
-            <Suspense fallback={null}>
-              <TanStackRouterDevtools position="bottom-right" />
-            </Suspense>
-          ) : null}
+          {/* 日付の表示と週の始まりは日本向けに一括で設定します。
+              個々の入力に locale を書くと、足すたびに揃え忘れが出ます。 */}
+          <DatesProvider settings={{ firstDayOfWeek: 0, locale: "ja" }}>
+            {user ? <SessionBar user={user} /> : null}
+            <Outlet />
+            {TanStackRouterDevtools ? (
+              <Suspense fallback={null}>
+                <TanStackRouterDevtools position="bottom-right" />
+              </Suspense>
+            ) : null}
+          </DatesProvider>
         </MantineProvider>
         <Scripts />
       </body>

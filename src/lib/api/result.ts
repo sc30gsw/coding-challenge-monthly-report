@@ -9,7 +9,7 @@ import { Result, TaggedError } from "better-result";
  * @see docs/adr/0005-better-result-for-expected-failures.md
  */
 
-export class ApiError extends TaggedError("ApiError")<{
+class ApiError extends TaggedError("ApiError")<{
   /** サーバーが返した業務上の理由。ネットワーク障害など、無いこともあります。 */
   detail: string | null;
   message: string;

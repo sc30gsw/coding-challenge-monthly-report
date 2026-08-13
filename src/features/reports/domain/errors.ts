@@ -23,4 +23,20 @@ export class ReportNotFound extends TaggedError("ReportNotFound")<{
   reportId: string;
 }> {}
 
-export type ReportError = ClientNotFound | ReportNotFound;
+/** その状態からその操作はできない、という業務上の拒否です。 */
+export class TransitionNotAllowed extends TaggedError("TransitionNotAllowed")<{
+  from: string;
+  message: string;
+  to: string;
+}> {}
+
+/**
+ * 見えてはいけない報告書に触ろうとした、という拒否です。
+ * 「存在しない」と区別します。営業が担当していない報告書は、存在自体は事実だからです。
+ */
+export class ReportNotVisible extends TaggedError("ReportNotVisible")<{
+  message: string;
+  reportId: string;
+}> {}
+
+export type ReportError = ClientNotFound | ReportNotFound | ReportNotVisible | TransitionNotAllowed;

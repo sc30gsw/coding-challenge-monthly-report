@@ -115,3 +115,17 @@ export async function createLine({
 
   return line;
 }
+
+/** 担当が分かれる状況を作るための、追加の営業ユーザーです。 */
+export async function createSalesUser(name = "追加 営業") {
+  const [user] = await db
+    .insert(users)
+    .values({ email: `sales-${randomUUID()}@example.com`, name, role: "sales" })
+    .returning();
+
+  if (!user) {
+    throw new Error("fixture insert returned no row");
+  }
+
+  return user;
+}

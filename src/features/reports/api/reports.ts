@@ -32,3 +32,7 @@ export async function createReport(input: CreateReportInput) {
 export async function addReportLine(reportId: string, input: CreateReportLineInput) {
   return toResult(await getApi().reports({ reportId }).lines.post(input));
 }
+
+export async function requestReview(reportId: string) {
+  return toResult(await getApi().reports({ reportId }).review.post());
+}

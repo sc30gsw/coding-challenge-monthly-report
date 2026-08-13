@@ -1,12 +1,12 @@
-import { Anchor, Card, Group, Stack, Table, Text, Title } from "@mantine/core";
-import { Link, createFileRoute, notFound, redirect } from "@tanstack/react-router";
+import { Alert, Anchor, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
+import { Link, createFileRoute, notFound, redirect, useRouter } from "@tanstack/react-router";
 import { Result } from "better-result";
 
 import { fetchSelectableUsers } from "~/features/auth/api/session";
-import { fetchReport } from "~/features/reports/api/reports";
+import { fetchReport, requestReview } from "~/features/reports/api/reports";
 import { AddReportLineForm } from "~/features/reports/components/add-report-line-form";
+import { ReportLineTable } from "~/features/reports/components/report-line-table";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
-import type { ReportLine } from "~/features/reports/schemas/report-schema";
 import { orThrow } from "~/lib/api/result";
 
 export const Route = createFileRoute("/reports/$reportId")({
@@ -15,16 +15,14 @@ export const Route = createFileRoute("/reports/$reportId")({
       throw redirect({ to: "/login" });
     }
 
-    if (context.user.role !== "admin") {
-      throw redirect({ to: "/" });
-    }
+    return { user: context.user };
   },
   component: ReportDetailPage,
-  loader: async ({ params }) => {
-    const [report, users] = await Promise.all([
-      fetchReport(params.reportId),
-      fetchSelectableUsers(),
-    ]);
+  loader: async ({ context, params }) => {
+    const report = await fetchReport(params.reportId);
+
+    // 担当営業の選択肢は明細を足すときにしか要らないので、管理者のときだけ読みます。
+    const users = context.user?.role === "admin" ? await fetchSelectableUsers() : null;
 
     // 「見つからない」は業務上ありうる結果なので、エラー画面ではなく 404 として扱います。
     if (Result.isError(report)) {
@@ -33,21 +31,17 @@ export const Route = createFileRoute("/reports/$reportId")({
 
     return {
       report: report.value,
-      salesUsers: orThrow(users).filter((user) => user.role === "sales"),
+      salesUsers: users ? orThrow(users).filter((user) => user.role === "sales") : [],
     };
   },
 });
 
 const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" });
 
-const LINE_STATUS_LABELS = {
-  approved: "承認済み",
-  changes_requested: "差し戻し",
-  pending: "未確認",
-} as const satisfies Record<ReportLine["status"], string>;
-
 function ReportDetailPage() {
   const { report, salesUsers } = Route.useLoaderData();
+  const { user } = Route.useRouteContext();
+  const isAdmin = user.role === "admin";
 
   return (
     <main className="mx-auto max-w-5xl p-8">
@@ -95,45 +89,48 @@ function ReportDetailPage() {
             明細
           </Text>
 
-          {report.lines.length === 0 ? (
-            <Text c="dimmed" size="sm">
-              明細がありません。確定するには 1 件以上必要です。
-            </Text>
-          ) : (
-            <Table highlightOnHover striped>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>案件名</Table.Th>
-                  <Table.Th>担当営業</Table.Th>
-                  <Table.Th>確認状況</Table.Th>
-                  <Table.Th className="text-right">金額</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {report.lines.map((line) => (
-                  <Table.Tr key={line.id}>
-                    <Table.Td>{line.projectName}</Table.Td>
-                    <Table.Td>{line.salesOwner.name}</Table.Td>
-                    <Table.Td>{LINE_STATUS_LABELS[line.status]}</Table.Td>
-                    <Table.Td className="text-right tabular-nums">
-                      {yen.format(Number(line.amount))}
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          )}
+          <ReportLineTable lines={report.lines} viewerId={user.id} />
         </Stack>
 
-        <Card padding="md" radius="md" withBorder>
-          <Stack gap="sm">
-            <Text fw={600} size="sm">
-              明細を追加
-            </Text>
-            <AddReportLineForm reportId={report.id} salesUsers={salesUsers} />
-          </Stack>
-        </Card>
+        {isAdmin && report.status === "draft" ? (
+          <Card padding="md" radius="md" withBorder>
+            <Stack gap="sm">
+              <Text fw={600} size="sm">
+                明細を追加
+              </Text>
+              <AddReportLineForm reportId={report.id} salesUsers={salesUsers} />
+            </Stack>
+          </Card>
+        ) : null}
+
+        {isAdmin && report.status === "draft" ? <RequestReviewPanel report={report} /> : null}
       </Stack>
     </main>
+  );
+}
+
+/**
+ * 確認依頼。押すと営業が明細を確認できるようになります。
+ * 下書きへ戻す操作はありません。差し戻し対応の編集は確認中のまま行えるためです。
+ */
+function RequestReviewPanel({ report }: Record<"report", { id: string }>) {
+  const router = useRouter();
+
+  async function handleRequestReview() {
+    await requestReview(report.id);
+    await router.invalidate();
+  }
+
+  return (
+    <Alert color="blue" title="担当営業に確認してもらう" variant="light">
+      <Stack align="flex-start" gap="sm">
+        <Text size="sm">
+          確認依頼を出すと、明細の担当営業がこの報告書を開けるようになります。下書きへ戻す操作はありません。
+        </Text>
+        <Button onClick={handleRequestReview} size="xs">
+          確認依頼を出す
+        </Button>
+      </Stack>
+    </Alert>
   );
 }
