@@ -85,6 +85,26 @@ describe("確認の操作", () => {
     expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
   });
 
+  it("すでに確認済みの自分の行では、承認・差し戻しのボタンが押せない", async () => {
+    // 未確認に戻すのは管理者の編集だけです。営業自身が確認状況を動かせると、
+    // 一度も編集されていない内容の確認状況を自分で変えられてしまいます。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const reviewed = [{ ...lines[0], status: "approved" }, lines[1]] as ReportDetail["lines"];
+
+    await renderWithProviders(<ReportLineTable canReview lines={reviewed} viewerId={MINE} />);
+
+    const mine = screen.getByRole("row", { name: /自分の案件/ });
+
+    expect(within(mine).getByRole("button", { name: "承認" })).toHaveAttribute(
+      "data-disabled",
+      "true",
+    );
+    expect(within(mine).getByRole("button", { name: "差し戻し" })).toHaveAttribute(
+      "data-disabled",
+      "true",
+    );
+  });
+
   it("差し戻しの理由が表示される", async () => {
     const sentBack = [
       {

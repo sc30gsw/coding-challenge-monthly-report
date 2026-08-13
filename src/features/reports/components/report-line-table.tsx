@@ -89,7 +89,7 @@ export function ReportLineTable({
             </Table.Td>
             <Table.Td>
               {canReview && line.salesOwner.id === viewerId ? (
-                <LineReviewActions lineId={line.id} />
+                <LineReviewActions lineId={line.id} status={line.status} />
               ) : null}
               {canEdit ? (
                 <LineAdminActions

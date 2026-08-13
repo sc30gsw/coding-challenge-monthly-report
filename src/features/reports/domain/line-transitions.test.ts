@@ -48,13 +48,27 @@ describe("承認", () => {
     },
   );
 
-  it("すでに承認済みでも、もう一度承認しても壊れない", () => {
+  it("すでに承認済みの行はもう一度承認できない", () => {
+    // 未確認に戻すのは管理者の編集だけです。営業自身が確認状況を動かせると、
+    // 一度も編集されていない内容を「もう一度承認した」ことにできてしまいます。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
     const approved = approveLine(
       { reportStatus: "in_review", salesOwnerId: OWNER, status: "approved" },
       { id: OWNER, role: "sales" },
     );
 
-    expect(Result.isOk(approved)).toBe(true);
+    expect(Result.isError(approved)).toBe(true);
+    expect(Result.isError(approved) ? approved.error._tag : null).toBe("TransitionNotAllowed");
+  });
+
+  it("差し戻し済みの行を、差し戻した本人が承認に倒すことはできない", () => {
+    const approved = approveLine(
+      { reportStatus: "in_review", salesOwnerId: OWNER, status: "changes_requested" },
+      { id: OWNER, role: "sales" },
+    );
+
+    expect(Result.isError(approved)).toBe(true);
+    expect(Result.isError(approved) ? approved.error._tag : null).toBe("TransitionNotAllowed");
   });
 });
 
@@ -93,5 +107,27 @@ describe("差し戻し", () => {
     const sent = requestChanges(lineIn("draft"), { id: OWNER, role: "sales" }, "金額が違います");
 
     expect(Result.isError(sent)).toBe(true);
+  });
+
+  it("すでに承認済みの行を差し戻すことはできない", () => {
+    const sent = requestChanges(
+      { reportStatus: "in_review", salesOwnerId: OWNER, status: "approved" },
+      { id: OWNER, role: "sales" },
+      "考え直しました",
+    );
+
+    expect(Result.isError(sent)).toBe(true);
+    expect(Result.isError(sent) ? sent.error._tag : null).toBe("TransitionNotAllowed");
+  });
+
+  it("すでに差し戻し済みの行をもう一度差し戻すことはできない", () => {
+    const sent = requestChanges(
+      { reportStatus: "in_review", salesOwnerId: OWNER, status: "changes_requested" },
+      { id: OWNER, role: "sales" },
+      "理由を言い直します",
+    );
+
+    expect(Result.isError(sent)).toBe(true);
+    expect(Result.isError(sent) ? sent.error._tag : null).toBe("TransitionNotAllowed");
   });
 });
