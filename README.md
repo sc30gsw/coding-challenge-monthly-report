@@ -33,21 +33,21 @@
 
 選定理由と却下した代案は、各 ADR を参照してください。
 
-| 領域              | 採用                             | なぜこの技術か                                                                                                                                                     |
-| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 領域              | 採用                             | なぜこの技術か                                                                                                                                                                                       |
+| ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | フレームワーク    | TanStack Start + React 19        | 確定後の書き換え禁止と権限判定を、ページを開く時点でサーバー側で行うため。ブラウザだけで判定すると、確定済みでも画面から書き換えられます → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
-| ツールチェーン    | Vite+ (`vp`)                     | 採点者と自分の手順を 1 つの CLI に揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                           |
-| API               | ElysiaJS                         | 型の付いた API と仕様書を出せるため。画面用のサーバー処理と API を分け、調査しやすくします → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)     |
-| 型共有 / 仕様書   | Eden Treaty + `@elysia/openapi`  | 画面が使う型は API からそのまま付くので、生成し忘れがありません。OpenAPI は採点者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)            |
-| スキーマ          | Valibot                          | サーバー・画面・仕様書の入力ルールを 1 箇所にするため。別々に書くと、片方だけ直して穴が開きます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)      |
-| フォーム          | Formisch (`@formisch/react`)     | その入力ルールから画面のフォームを直接作れるため。何を聞いているかは、ルールを見れば分かります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)       |
-| エラー            | better-result                    | 「確定できない」のような想定内の失敗を、バグと分けて扱えるため。画面にも API にも同じ理由が届きます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md) |
-| UI コンポーネント | Mantine                          | 業務画面の部品が最も揃っているため。テーブル等を自作せず、版管理に時間を使います → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                     |
-| レイアウト        | Tailwind CSS 4                   | 部品の配置を短く書くため。見た目は Mantine に任せます → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                   |
-| ORM               | Drizzle                          | 書いた定義が SQL に近く、DB の約束を隠さないため。読めば「何が効いているか」が分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)             |
-| DB                | PostgreSQL                       | 「確定後は書き換え禁止」「進行中の版は系列に 1 つ」を、アプリだけでなく DB にも書けるため → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)            |
-| 実行基盤          | Docker                           | 採点者が同じ Postgres を再現するための手段です。`clone → 動く` のためのコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                    |
-| 認証              | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。大事なのは「誰が何をしてよいか」をサーバーで判定することです。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)  |
+| ツールチェーン    | Vite+ (`vp`)                     | 採点者と自分の手順を 1 つの CLI に揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                                                             |
+| API               | ElysiaJS                         | 型の付いた API と仕様書を出せるため。画面用のサーバー処理と API を分け、調査しやすくします → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)                                       |
+| 型共有 / 仕様書   | Eden Treaty + `@elysia/openapi`  | 画面が使う型は API からそのまま付くので、生成し忘れがありません。OpenAPI は採点者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                              |
+| スキーマ          | Valibot                          | サーバー・画面・仕様書の入力ルールを 1 箇所にするため。別々に書くと、片方だけ直して穴が開きます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                        |
+| フォーム          | Formisch (`@formisch/react`)     | その入力ルールから画面のフォームを直接作れるため。何を聞いているかは、ルールを見れば分かります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                         |
+| エラー            | better-result                    | 「確定できない」のような想定内の失敗を、バグと分けて扱えるため。画面にも API にも同じ理由が届きます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md)                               |
+| UI コンポーネント | Mantine                          | 業務画面の部品が最も揃っているため。テーブル等を自作せず、版管理に時間を使います → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                         |
+| レイアウト        | Tailwind CSS 4                   | 部品の配置を短く書くため。見た目は Mantine に任せます → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                                                    |
+| ORM               | Drizzle                          | 書いた定義が SQL に近く、DB の約束を隠さないため。読めば「何が効いているか」が分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                               |
+| DB                | PostgreSQL                       | 「確定後は書き換え禁止」「進行中の版は系列に 1 つ」を、アプリだけでなく DB にも書けるため → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                              |
+| 実行基盤          | Docker                           | 採点者が同じ Postgres を再現するための手段です。`clone → 動く` のためのコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                      |
+| 認証              | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。大事なのは「誰が何をしてよいか」をサーバーで判定することです。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)                                    |
 
 **Mantine + Tailwind はオーバースペックでは？** デザインの仕組みを二枚持っているわけではありません。役割を分けています。
 
@@ -100,11 +100,11 @@
 
 宣言したルールが実際に崩れないことを、3 つの層で確かめています。テストは 20 ファイル・206 件です。
 
-| 層                                 | 何を守るか                                    | 例                                                                                                                                             |
-| ---------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 業務ルール単体（DB なし）          | 状態 × 操作 × 役割の全組み合わせ              | [`confirmation.test.ts`](src/features/reports/domain/confirmation.test.ts), [`revision.test.ts`](src/features/reports/domain/revision.test.ts) |
-| API 統合（実 PostgreSQL）          | 画面を経由しない要求。権限・入力・DB の約束   | [`reports.test.ts`](src/server/reports.test.ts), [`revisions.test.ts`](src/server/revisions.test.ts)                                           |
-| 画面の統合（API を偽物にしない）   | 画面 → API → DB の一本                        | [`report-line-table.test.tsx`](src/features/reports/components/report-line-table.test.tsx)                                                     |
+| 層                               | 何を守るか                                  | 例                                                                                                                                             |
+| -------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 業務ルール単体（DB なし）        | 状態 × 操作 × 役割の全組み合わせ            | [`confirmation.test.ts`](src/features/reports/domain/confirmation.test.ts), [`revision.test.ts`](src/features/reports/domain/revision.test.ts) |
+| API 統合（実 PostgreSQL）        | 画面を経由しない要求。権限・入力・DB の約束 | [`reports.test.ts`](src/server/reports.test.ts), [`revisions.test.ts`](src/server/revisions.test.ts)                                           |
+| 画面の統合（API を偽物にしない） | 画面 → API → DB の一本                      | [`report-line-table.test.tsx`](src/features/reports/components/report-line-table.test.tsx)                                                     |
 
 要点は 3 つです。
 
@@ -118,9 +118,9 @@
 
 業務フローの表現とは別の層です。上の選定テーブルには混ぜていません。品質を保つための道具として入れています。
 
-| ツール       | 用途                                                                            |
-| ------------ | ------------------------------------------------------------------------------- |
-| fallow       | 未使用ファイル・依存・エクスポートの検出（`vp run fallow`）                     |
+| ツール       | 用途                                                                              |
+| ------------ | --------------------------------------------------------------------------------- |
+| fallow       | 未使用ファイル・依存・エクスポートの検出（`vp run fallow`）                       |
 | react-doctor | React 向けの健全性チェック（`vp run doctor`）。ファイルを編集したときにも動きます |
 
 ## AI ツールの利用
@@ -247,7 +247,7 @@ vp dev
 3. `docker compose` で PostgreSQL を起動し、healthcheck が通るまで待つ
 4. アプリ用とテスト用の両方のデータベースにマイグレーションを適用し、seed を流す
 
-Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABASE_URL` と `TEST_DATABASE_URL` を書き換えてから `vp run setup` を実行してください。Docker には触らず、マイグレーションだけを当てます。
+Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABASE_URL` と `TEST_DATABASE_URL` を書き換えてから `vp run setup` を実行してください。Docker には触らず、マイグレーションと seed を当てます。
 
 環境変数は [`.env.example`](.env.example) に、それぞれ何のために要るのかと併せて書いてあります。実際の値は含めていません。
 
