@@ -82,5 +82,9 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    setupFiles: ["src/test/setup.ts"],
+    // API integration は 1 つのテスト用データベースを共有します。並列に走らせると
+    // テスト間で truncate が衝突するため、ファイル単位の並列実行を止めます。
+    fileParallelism: false,
   },
 });
