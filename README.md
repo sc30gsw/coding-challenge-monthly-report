@@ -54,7 +54,7 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 要件・機能の整理と、技術選定は、先に自分で下書きをしました。その下書きを Matt Pocock の Grill-driven development（[`/grill-with-docs`](https://www.aihero.dev/skills-grill-with-docs)）で問い詰めています。
 
-使ったツールは Cursor と Claude Code です。作業ごとの分担は次のとおりです。
+使ったツールは Claude Code です。作業ごとの分担は次のとおりです。
 
 ### 要件・設計・技術選定
 
@@ -70,9 +70,9 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 ### 実装
 
-- **どのツール:** Cursor
+- **どのツール:** Claude Code
 - **どの作業:** 機能の実装（TDD）
-- **どの程度:** テスト先行でコードを書くのは Cursor です。私は[チケット](https://github.com/sc30gsw/coding-challenge-monthly-report/issues)の確認と指示のみ実施しました。通す・戻すの判断は自分です
+- **どの程度:** テスト先行でコードを書くのは Claude Code です。私は[チケット](https://github.com/sc30gsw/coding-challenge-monthly-report/issues)の確認と指示のみ実施しました。通す・戻すの判断は自分です
 
 ### レビュー
 
