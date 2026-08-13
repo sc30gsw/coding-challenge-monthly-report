@@ -70,9 +70,9 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 ### 実装
 
-- **どのツール:** Claude Code
+- **どのツール:** Claude Code・Cursor
 - **どの作業:** 機能の実装（TDD）
-- **どの程度:** テスト先行でコードを書くのは Claude Code です。私は[チケット](https://github.com/sc30gsw/coding-challenge-monthly-report/issues)の確認と指示のみ実施しました。通す・戻すの判断は自分です
+- **どの程度:** テスト先行でコードを書くのは Claude Code、改善・リファクタ・不具合解消はCursor です。私は[チケット](https://github.com/sc30gsw/coding-challenge-monthly-report/issues)の確認と指示のみ実施しました。通す・戻すの判断は自分です
 
 ### レビュー
 
