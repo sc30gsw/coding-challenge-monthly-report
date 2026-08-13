@@ -1,9 +1,16 @@
-import { Badge, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
+import { Alert, Badge, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { Result } from "better-result";
+import { useState } from "react";
 
 import { fetchSelectableUsers, login } from "~/features/auth/api/session";
 import { orThrow } from "~/lib/api/result";
 import { ROLE_LABELS } from "~/lib/role-labels";
+
+type LoginStatus =
+  | { status: "idle" }
+  | { status: "pending"; userId: string }
+  | { status: "error"; message: string };
 
 export const Route = createFileRoute("/login")({
   beforeLoad: ({ context }) => {
@@ -18,11 +25,32 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { users } = Route.useLoaderData();
   const router = useRouter();
+  const [loginStatus, setLoginStatus] = useState<LoginStatus>({ status: "idle" });
+  const isPending = loginStatus.status === "pending";
 
   async function handleSelect(userId: string) {
-    await login(userId);
-    await router.invalidate();
-    await router.navigate({ to: "/" });
+    if (isPending) {
+      return;
+    }
+
+    setLoginStatus({ status: "pending", userId });
+
+    try {
+      const result = await login(userId);
+
+      if (Result.isError(result)) {
+        setLoginStatus({
+          message: result.error.reason ?? "ログインできませんでした",
+          status: "error",
+        });
+        return;
+      }
+
+      await router.invalidate();
+      await router.navigate({ to: "/" });
+    } catch {
+      setLoginStatus({ message: "ログインできませんでした", status: "error" });
+    }
   }
 
   return (
@@ -37,6 +65,12 @@ function LoginPage() {
           </Text>
         </div>
 
+        {loginStatus.status === "error" ? (
+          <Alert color="red" title="ログインに失敗しました" variant="light">
+            {loginStatus.message}
+          </Alert>
+        ) : null}
+
         <Stack gap="xs">
           {users.map((user) => (
             <Card key={user.id} padding="md" radius="md" withBorder>
@@ -47,7 +81,12 @@ function LoginPage() {
                     {ROLE_LABELS[user.role]}
                   </Badge>
                 </Group>
-                <Button onClick={() => handleSelect(user.id)} size="xs">
+                <Button
+                  disabled={isPending}
+                  loading={loginStatus.status === "pending" && loginStatus.userId === user.id}
+                  onClick={() => handleSelect(user.id)}
+                  size="xs"
+                >
                   この立場でログイン
                 </Button>
               </Group>
