@@ -10,6 +10,7 @@ import {
   type ReportError,
   ReportNotFound,
   ReportNotVisible,
+  SalesOwnerNotAssignable,
 } from "~/features/reports/domain/errors";
 import {
   addLine as addLineTransition,
@@ -180,6 +181,33 @@ async function getReportDetail(reportId: string): Promise<Result<ReportDetail, R
   });
 }
 
+/**
+ * 担当営業に指定された相手が、本当に営業かを確かめます。
+ *
+ * 承認できるのは営業だけなので、営業以外を割り当てた明細は誰にも承認されず、その報告書は
+ * 永久に確定できなくなります。画面の選択肢は営業に絞っていますが、絞り込みは表示の都合で
+ * あって防御ではありません。拒否はここでしか効きません。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ */
+async function ensureAssignableSalesOwner(
+  salesOwnerId: string,
+): Promise<Result<true, ReportError>> {
+  const [owner] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, salesOwnerId))
+    .limit(1);
+
+  return owner?.role === "sales"
+    ? Result.ok(true as const)
+    : Result.err(
+        new SalesOwnerNotAssignable({
+          message: "担当営業に指定できるのは営業のユーザーだけです",
+          salesOwnerId,
+        }),
+      );
+}
+
 export async function addReportLine(
   reportId: string,
   input: CreateReportLineInput,
@@ -194,6 +222,12 @@ export async function addReportLine(
 
   if (Result.isError(allowed)) {
     return allowed;
+  }
+
+  const assignable = await ensureAssignableSalesOwner(input.salesOwnerId);
+
+  if (Result.isError(assignable)) {
+    return assignable;
   }
 
   await db.insert(reportLines).values({
@@ -431,6 +465,12 @@ export async function updateReportLine(
 
   if (Result.isError(edited)) {
     return edited;
+  }
+
+  const assignable = await ensureAssignableSalesOwner(input.salesOwnerId);
+
+  if (Result.isError(assignable)) {
+    return assignable;
   }
 
   await db

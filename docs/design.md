@@ -82,6 +82,10 @@ flowchart LR
 | 修正版の作成   | ✅          | ❌                     | ❌             | `confirmed`                             |
 | 閲覧           | 全 Report   | 関係する系列の全ての版 | ❌             | 全状態                                  |
 
+**唯一の無認証エンドポイントは `GET /api/auth/users`**（ログイン画面の選択肢）。ログイン前に呼ぶ必要があるので、ダミーログインという方式の必然。名前とロールが誰にでも見えることを承知のうえで許容している。本番相当の認証へ差し替えるときに真っ先に消える経路（[ADR-0015](./adr/0015-signed-cookie-dummy-login.md)）。
+
+**担当営業に指定できるのは営業ロールのユーザーだけ**。サーバーが検証する。営業以外を担当にした明細は誰にも承認されず、その報告書は永久に確定できなくなるため。画面の選択肢も営業に絞っているが、それは表示の都合であって防御ではない。
+
 表紙（取引先・対象月・宛先）は作成時に決まり、後から変える手段を実装していない。取引先を変えるのは別の報告書を作るのと同じであり、対象月と宛先の訂正だけを許す UI は版管理より優先度が低いと判断した。直したい場合は下書きのうちに作り直す。
 
 「関係する系列」= 自分が担当する ReportLine を 1 件以上含む版が、その系列に 1 つ以上ある。営業は Report を**全体として**閲覧できる（金額合計や他の明細が見えないと承認の意味が痩せるため）が、操作できるのは自分の担当明細だけ。
@@ -94,11 +98,13 @@ flowchart LR
 
 「全明細が承認済み」は明細 0 件のとき自動的に真になるので、件数条件を明示的に足している。これが無いと空の報告書が不可逆に確定する。
 
-満たさない場合はサーバー側で `LinesNotFullyApproved` を返す。UI は確定ボタンを**非活性にしたうえで、未承認 N 件・差し戻し N 件と差し戻し理由を出す**。ボタンを消さないのは、ユーザーが知りたいのが「押せるか」ではなく「あと何をすれば前に進めるか」だから。UI の非活性化は表示の都合であって防御ではなく、サーバー側の拒否が唯一の保証。
+満たさない場合はサーバー側で `LinesNotFullyApproved` を返す。UI は確定ボタンを**非活性にしたうえで、未承認 N 件・差し戻し N 件を出す**。個々の差し戻し理由は明細表のその行に出す。理由は「どの明細を直すか」と対になった情報なので、行から引き剥がすと突き合わせが読み手の仕事になる。ボタンを消さないのは、ユーザーが知りたいのが「押せるか」ではなく「あと何をすれば前に進めるか」だから。UI の非活性化は表示の都合であって防御ではなく、サーバー側の拒否が唯一の保証。
 
 ### 確定後の不変性
 
-`confirmed` / `superseded` な Report とその ReportLine は変更できない。ドメイン層のガードに加え、**PostgreSQL のトリガでも UPDATE / DELETE を拒否する**（[ADR-0008](./adr/0008-immutability-enforced-in-two-layers.md)）。唯一許す更新は `confirmed → superseded` の status 変更のみ。
+`confirmed` / `superseded` な Report とその ReportLine は変更できない。ドメイン層のガードに加え、**PostgreSQL のトリガでも拒否する**（[ADR-0008](./adr/0008-immutability-enforced-in-two-layers.md)）。Report 側は UPDATE・DELETE を、ReportLine 側は INSERT も含めて拒否する（明細を後から足す経路も塞ぐため）。
+
+Report で唯一許す更新は `confirmed → superseded` の status 変更のみ。**しかも同じ系列により新しい版が既に存在するときに限る**。後継を作らずに確定済みを無効化されないようにするため。
 
 コメントはこの制約の外側にある（[ADR-0011](./adr/0011-comments-outlive-confirmation.md)）。不変性は「取引先に提出される中身」に掛かる制約であり、やりとりの記録はその中身ではない。確定後に誤りを見つけた人が経緯を残せないのは運用として成立しない。
 
@@ -139,19 +145,23 @@ erDiagram
         uuid id PK
         uuid report_id FK
         text project_name
-        numeric amount
+        numeric amount "numeric(14,2)"
         text status "pending | approved | changes_requested"
-        text sales_owner_id FK
+        uuid sales_owner_id FK
+        text change_request_reason "直近の差し戻し理由。編集後も残す"
+        int position "表示順"
     }
     comment {
         uuid id PK
         uuid report_id FK
         uuid line_id FK "null なら報告書コメント"
-        text author_id FK
+        uuid author_id FK
         text body
         timestamptz created_at
     }
 ```
+
+実テーブル名は複数形（`users` / `clients` / `reports` / `report_lines` / `comments`）。上図は読みやすさのため単数で書いている。列と型の正は [`src/db/schema.ts`](../src/db/schema.ts)。`created_at` / `updated_at` は全テーブルにあるが、図では省略している。
 
 `user` は自前のテーブル。認証基盤を入れないので session / account といった付随テーブルは無い（[ADR-0015](./adr/0015-signed-cookie-dummy-login.md)）。
 
@@ -163,13 +173,25 @@ erDiagram
 
 ### DB 制約
 
-| 制約                                                                  | 目的                                        |
-| --------------------------------------------------------------------- | ------------------------------------------- |
-| `unique(series_id, version)`                                          | 版番号の重複を防ぐ                          |
-| `series_id` に対する部分ユニーク（`status in ('draft','in_review')`） | 同じ系列で修正版が 2 つ並走する事故を止める |
-| `confirmed` / `superseded` 行への UPDATE / DELETE を拒否するトリガ    | 確定後の不変性をアプリ層のバグから守る      |
+業務ルールを担っているもの:
 
-Drizzle のスキーマ定義だけを読むとトリガの存在が見えないので、スキーマ側にコメントを残す。
+| 制約                                                                          | 目的                                           |
+| ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| `unique(series_id, version)`                                                  | 版番号の重複を防ぐ                             |
+| `series_id` に対する部分ユニーク（`status in ('draft','in_review')`）         | 同じ系列で修正版が 2 つ並走する事故を止める    |
+| `reports` のトリガ（`confirmed` / `superseded` 行の UPDATE・DELETE を拒否）   | 確定後の不変性をアプリ層のバグから守る         |
+| `report_lines` のトリガ（凍結済みの親に対する INSERT・UPDATE・DELETE を拒否） | 確定後に明細を足す／抜く／付け替える経路も塞ぐ |
+| `reports_confirmed_at_matches_status`（CHECK）                                | 確定日時と状態が食い違う行を作らせない         |
+| `report_lines_reason_required_when_changes_requested`（CHECK）                | 理由の無い差し戻しを作らせない                 |
+| `report_lines_amount_non_negative`（CHECK）                                   | 負の金額を弾く                                 |
+
+**`reports` のトリガが唯一許す更新は `confirmed → superseded` の status（と `updated_at`）だけ**で、しかも**同じ系列により新しい版が既に存在するとき**に限る。後継を作らずに確定済みを無効化する経路を残さないため。
+
+`report_lines` 側は INSERT も拒否する。UPDATE・DELETE だけを塞ぐと、確定後に明細を足せてしまう。付け替え（`report_id` の書き換え）は移動元・移動先の両方を見る。片方だけだと、確定済みから明細を下書きへ移して中身を抜ける。
+
+このほか整合性のための `users.email` の一意制約と、`reports`（series / client）・`report_lines`（report / owner）・`comments`（report / line）の索引がある。
+
+Drizzle のスキーマ定義だけを読むとトリガの存在が見えないので、スキーマ側にコメントを残す。実体は [`drizzle/0001_immutable_confirmed_reports.sql`](../drizzle/0001_immutable_confirmed_reports.sql) と [`drizzle/0002_close_immutability_bypasses.sql`](../drizzle/0002_close_immutability_bypasses.sql)。
 
 ## 4. seed
 

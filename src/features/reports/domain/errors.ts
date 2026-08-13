@@ -97,6 +97,19 @@ export class RevisionAlreadyInProgress extends TaggedError("RevisionAlreadyInPro
   version: number;
 }> {}
 
+/**
+ * 担当営業に指定された相手が、営業ではない（または存在しない）という拒否です。
+ *
+ * 承認できるのは営業だけなので、営業以外を担当に割り当てた明細は誰にも承認されません。
+ * その報告書は永久に確定できなくなります。画面の選択肢は営業に絞っていますが、
+ * 絞り込みは表示の都合であって防御ではありません。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ */
+export class SalesOwnerNotAssignable extends TaggedError("SalesOwnerNotAssignable")<{
+  message: string;
+  salesOwnerId: string;
+}> {}
+
 export type ReportError =
   | ClientNotFound
   | LineNotInReport
@@ -106,4 +119,5 @@ export type ReportError =
   | ReportNotFound
   | ReportNotVisible
   | RevisionAlreadyInProgress
+  | SalesOwnerNotAssignable
   | TransitionNotAllowed;

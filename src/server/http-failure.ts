@@ -10,6 +10,7 @@ import type { ReportError } from "~/features/reports/domain/errors";
  * - 404: 存在しない
  * - 403: 存在するが、その人には見せない
  * - 409: 存在も権限もあるが、いまの状態ではできない
+ * - 422: 形は正しいが、その値を業務上受け付けられない
  */
 export function toHttpFailure(error: ReportError) {
   const body = { message: error.message, tag: error._tag };
@@ -23,15 +24,18 @@ export function toHttpFailure(error: ReportError) {
     ReportNotFound: () => ({ body, status: 404 as const }),
     ReportNotVisible: () => ({ body, status: 403 as const }),
     RevisionAlreadyInProgress: () => ({ body, status: 409 as const }),
+    // uuid としては正しいので 422。Elysia が入力検証の失敗に使うのと同じ番号です。
+    SalesOwnerNotAssignable: () => ({ body, status: 422 as const }),
     TransitionNotAllowed: () => ({ body, status: 409 as const }),
   });
 }
 
 const ErrorBodySchema = v.object({ message: v.string(), tag: v.string() });
 
-/** 失敗しうるルートは、この 3 つのステータスを宣言しておきます。 */
+/** 失敗しうるルートは、この 4 つのステータスを宣言しておきます。 */
 export const failureResponses = {
   403: ErrorBodySchema,
   404: ErrorBodySchema,
   409: ErrorBodySchema,
+  422: ErrorBodySchema,
 };

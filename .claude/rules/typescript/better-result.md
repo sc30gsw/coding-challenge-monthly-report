@@ -35,7 +35,11 @@ class ReportNotFound extends TaggedError("ReportNotFound")<{
 
 ## Serialization boundaries
 
-Keep `Result` instances in-process. Across process boundaries use `Result.serialize` / `Result.deserialize` — not a hand-rolled `{ error: true, data }`. `deserialize` validates the envelope only; parse the payload with Valibot.
+Keep `Result` instances in-process. Class instances never cross a boundary.
+
+**This project's only boundary is HTTP, and it does not use `Result.serialize` / `Result.deserialize`** — HTTP already has a vocabulary for failure. `toHttpFailure` (`src/server/http-failure.ts`) maps the tag to a status and returns a plain `{ message, tag }`; `toResult` (`src/lib/api/result.ts`) rebuilds a `Result` on the client. Layering a Result envelope inside HTTP would give the API two error protocols and make the OpenAPI document unreadable. The tag survives the crossing, which is the property that mattered. See [ADR-0005](../../../docs/adr/0005-better-result-for-expected-failures.md).
+
+Do not hand-roll a second envelope shape anywhere else. If a non-HTTP boundary appears, reach for `Result.serialize` there.
 
 ## Testing
 

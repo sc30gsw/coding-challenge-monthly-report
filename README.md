@@ -33,21 +33,21 @@
 
 選定理由と却下した代案は、各 ADR を参照してください。
 
-| 領域              | 採用                             | なぜこの技術か                                                                                                                                  |
-| ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| フレームワーク    | TanStack Start + React 19        | 不変性と権限判定をサーバー側（loader）に置くため。CSR だけだと不変がブラウザに落ちます → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
-| ツールチェーン    | Vite+ (`vp`)                     | 採点者と自分の手順を 1 つの CLI に揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                          |
+| 領域              | 採用                             | なぜこの技術か                                                                                                                                                     |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| フレームワーク    | TanStack Start + React 19        | 不変性と権限判定をサーバー側（loader）に置くため。CSR だけだと不変がブラウザに落ちます → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                 |
+| ツールチェーン    | Vite+ (`vp`)                     | 採点者と自分の手順を 1 つの CLI に揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                           |
 | API               | ElysiaJS                         | 型安全な RPC と API 仕様を出せるため。Server Function と切り離し、API とクライアントを分けます → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md) |
-| 型共有 / 仕様書   | Eden Treaty + `@elysia/openapi`  | Eden は生成忘れのない型。OpenAPI は採点者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                    |
-| スキーマ          | Valibot                          | サーバー・フォーム・OpenAPI の定義を 1 箇所にするため。二重定義は業務ルールの穴になります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md) |
-| フォーム          | Formisch (`@formisch/react`)     | スキーマから直接フォームを作れるため。UI の根拠がスキーマ 1 箇所に残ります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)          |
-| エラー            | better-result                    | 遷移拒否を型に載せ、想定内の失敗とバグを分けるため。HTTP 越えでも同じタグを復元できます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md) |
-| UI コンポーネント | Mantine                          | 業務 UI の幅が最も大きいため。テーブル等を自作せず、版管理に時間を使います → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)            |
-| レイアウト        | Tailwind CSS 4                   | レイアウトを短く当てるため。見た目は Mantine の props に任せます → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                       |
-| ORM               | Drizzle                          | SQL に近く、制約・トリガを隠しません。スキーマを読めば DB の約束が分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)        |
-| DB                | PostgreSQL                       | 書き換え禁止や「進行中の版は系列に 1 つ」を、部分ユニークやトリガで DB に書くため → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)    |
-| 実行基盤          | Docker                           | 採点者が同じ Postgres を再現するための手段です。`clone → 動く` のためのコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)   |
-| 認証              | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。評価軸はサーバー側の権限判定です。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)             |
+| 型共有 / 仕様書   | Eden Treaty + `@elysia/openapi`  | Eden は生成忘れのない型。OpenAPI は採点者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                                    |
+| スキーマ          | Valibot                          | サーバー・フォーム・OpenAPI の定義を 1 箇所にするため。二重定義は業務ルールの穴になります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)            |
+| フォーム          | Formisch (`@formisch/react`)     | スキーマから直接フォームを作れるため。UI の根拠がスキーマ 1 箇所に残ります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                           |
+| エラー            | better-result                    | 遷移拒否を型に載せ、想定内の失敗とバグを分けるため。HTTP 越えでも同じタグを復元できます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md)         |
+| UI コンポーネント | Mantine                          | 業務 UI の幅が最も大きいため。テーブル等を自作せず、版管理に時間を使います → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                             |
+| レイアウト        | Tailwind CSS 4                   | レイアウトを短く当てるため。見た目は Mantine の props に任せます → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                       |
+| ORM               | Drizzle                          | SQL に近く、制約・トリガを隠しません。スキーマを読めば DB の約束が分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                         |
+| DB                | PostgreSQL                       | 書き換え禁止や「進行中の版は系列に 1 つ」を、部分ユニークやトリガで DB に書くため → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                    |
+| 実行基盤          | Docker                           | 採点者が同じ Postgres を再現するための手段です。`clone → 動く` のためのコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                    |
+| 認証              | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。評価軸はサーバー側の権限判定です。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)                              |
 
 **Mantine + Tailwind はオーバースペックでは？** デザインシステムを二枚持っているわけではありません。役割を分けています。
 
@@ -261,13 +261,13 @@ Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABAS
 
 ### うまくいかないとき
 
-| 症状                                         | 対処                                                                                                                                                   |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 症状                                         | 対処                                                                                                                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `docker compose up` がポート 5432 で失敗する | 別の PostgreSQL が動いています。停止するか、`docker-compose.yml` の `ports` を `"5433:5432"` などに変え、`.env` の 2 つの URL のポート番号も合わせてください |
-| `COOKIE_SECRET` が空のまま起動して落ちる     | 既に `.env` があると `vp run setup` は上書きしません。`openssl rand -base64 32` の出力を `.env` に入れてください                                       |
-| `vp test` が DB に繋がらない                 | テストは `TEST_DATABASE_URL` を使います。`vp run db:up` でコンテナが起動しているかご確認ください                                                       |
-| データを触りすぎて元に戻したい               | `vp run seed`。既存を消してから入れ直すので、何度実行しても同じ状態になります                                                                          |
-| 完全にやり直したい                           | `vp run db:down` のあと `docker volume rm coding-challenge-monthly-report_postgres-data`、そして `vp run setup`                                        |
+| `COOKIE_SECRET` が空のまま起動して落ちる     | 既に `.env` があると `vp run setup` は上書きしません。`openssl rand -base64 32` の出力を `.env` に入れてください                                             |
+| `vp test` が DB に繋がらない                 | テストは `TEST_DATABASE_URL` を使います。`vp run db:up` でコンテナが起動しているかご確認ください                                                             |
+| データを触りすぎて元に戻したい               | `vp run seed`。既存を消してから入れ直すので、何度実行しても同じ状態になります                                                                                |
+| 完全にやり直したい                           | `vp run db:down` のあと `docker volume rm coding-challenge-monthly-report_postgres-data`、そして `vp run setup`                                              |
 
 ### ログイン
 

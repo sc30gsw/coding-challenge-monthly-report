@@ -139,6 +139,53 @@ describe("明細の追加", () => {
 
     expect(res.status).toBe(422);
   });
+
+  it("担当営業に営業以外は指定できない", async () => {
+    // 承認できるのは営業だけなので、営業以外を担当にした明細は誰にも承認されず、
+    // その報告書は永久に確定できなくなります。画面の選択肢を絞るのは表示の都合であって
+    // 防御ではないため、画面を通らないこの経路で拒否できる必要があります。
+    const report = await createDraft();
+
+    const res = await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "案件", salesOwnerId: actors.admin.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.json<{ tag: string }>().tag).toBe("SalesOwnerNotAssignable");
+  });
+
+  it("存在しないユーザーは担当営業に指定できない", async () => {
+    const report = await createDraft();
+
+    const res = await call(`/reports/${report.id}/lines`, {
+      body: {
+        amount: "1000",
+        projectName: "案件",
+        salesOwnerId: "00000000-0000-0000-0000-000000000000",
+      },
+      cookie: admin,
+      method: "POST",
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.json<{ tag: string }>().tag).toBe("SalesOwnerNotAssignable");
+  });
+
+  it("担当営業に営業以外を指定した明細は作られない", async () => {
+    const report = await createDraft();
+
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "案件", salesOwnerId: actors.admin.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const detail = await call(`/reports/${report.id}`, { cookie: admin });
+
+    expect(detail.json<ReportDetail>().lines).toHaveLength(0);
+  });
 });
 
 describe("金額合計", () => {
@@ -200,6 +247,14 @@ describe("一覧と詳細", () => {
     const res = await call("/reports/00000000-0000-0000-0000-000000000000", { cookie: admin });
 
     expect(res.status).toBe(404);
+  });
+
+  it("UUID の形をしていない ID は DB に届く前に拒否される", async () => {
+    // UUID でない値を numeric/uuid 列の比較に渡すと Postgres が 22P02 を投げ、
+    // 生成 SQL とバインド値が例外メッセージに残ります。params の検証で先に止めます。
+    const res = await call("/reports/not-a-uuid", { cookie: admin });
+
+    expect(res.status).toBe(422);
   });
 });
 
@@ -454,6 +509,12 @@ describe("明細の承認と差し戻し", () => {
     expect(res.status).toBe(403);
   });
 
+  it("UUID の形をしていない明細 ID は DB に届く前に拒否される", async () => {
+    const res = await call("/lines/not-a-uuid/approve", { cookie: sales, method: "POST" });
+
+    expect(res.status).toBe(422);
+  });
+
   it("下書きの報告書の明細は承認できない", async () => {
     const report = await createDraft();
     await call(`/reports/${report.id}/lines`, {
@@ -494,6 +555,20 @@ describe("明細の編集と削除", () => {
 
     return { line, reportId: report.id };
   }
+
+  it("編集でも、担当営業に営業以外は指定できない", async () => {
+    // 追加のときだけ塞いでも、編集で付け替えられれば同じ穴が空きます。
+    const { line } = await approvedLineInReview();
+
+    const res = await call(`/lines/${line.id}`, {
+      body: { amount: "50000", projectName: "元の案件名", salesOwnerId: actors.admin.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.json<{ tag: string }>().tag).toBe("SalesOwnerNotAssignable");
+  });
 
   it("承認済みの明細を編集すると未確認に戻る", async () => {
     // この課題で一番説明したい設計判断です。これが無いと
