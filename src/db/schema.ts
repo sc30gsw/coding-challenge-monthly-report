@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -126,6 +127,13 @@ export const reportLines = pgTable(
      * @see docs/adr/0007-approval-is-bound-to-content.md
      */
     changeRequestReason: text("change_request_reason"),
+    /**
+     * 直前に承認済みだったかどうか。`status` が `pending` に戻った理由が
+     * 「一度も見られていない」のか「承認後に編集された」のかは、`status` だけでは
+     * 読み分けられません。承認・差し戻しで新しい判断が付くたびに false に戻します。
+     * @see docs/adr/0007-approval-is-bound-to-content.md
+     */
+    previouslyApproved: boolean("previously_approved").notNull().default(false),
     /** 表示順。 */
     position: integer("position").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

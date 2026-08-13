@@ -74,6 +74,14 @@ export function ReportLineTable({
             <Table.Td>
               <Stack gap={2}>
                 <Text size="sm">{REPORT_LINE_STATUS_LABELS[line.status]}</Text>
+                {/* status だけでは「一度も見られていない未確認」と「承認後に編集された
+                    未確認」を読み分けられません。営業がもう一度確認を求められる理由です。
+                    @see docs/adr/0007-approval-is-bound-to-content.md */}
+                {line.status === "pending" && line.previouslyApproved ? (
+                  <Text c="blue.7" size="xs">
+                    承認済みでしたが、内容が編集されて未確認に戻りました
+                  </Text>
+                ) : null}
                 {/* 差し戻しの理由は、管理者が何を直すべきかを知るための情報です。
                     編集で未確認に戻ったあとも履歴として残ります。 */}
                 {line.changeRequestReason ? (

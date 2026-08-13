@@ -162,6 +162,7 @@ async function getReportDetail(reportId: string): Promise<Result<ReportDetail, R
       amount: reportLines.amount,
       changeRequestReason: reportLines.changeRequestReason,
       id: reportLines.id,
+      previouslyApproved: reportLines.previouslyApproved,
       projectName: reportLines.projectName,
       salesOwner: { id: users.id, name: users.name },
       status: reportLines.status,
@@ -411,7 +412,7 @@ export async function approveLine(
 
   await db
     .update(reportLines)
-    .set({ status: approved.value.status, updatedAt: new Date() })
+    .set({ previouslyApproved: false, status: approved.value.status, updatedAt: new Date() })
     .where(eq(reportLines.id, lineId));
 
   return Result.ok({ ok: true as const });
@@ -438,6 +439,7 @@ export async function requestLineChanges(
     .update(reportLines)
     .set({
       changeRequestReason: sent.value.changeRequestReason,
+      previouslyApproved: false,
       status: sent.value.status,
       updatedAt: new Date(),
     })
@@ -477,6 +479,7 @@ export async function updateReportLine(
     .update(reportLines)
     .set({
       amount: input.amount,
+      previouslyApproved: edited.value.wasApproved,
       projectName: input.projectName,
       salesOwnerId: input.salesOwnerId,
       status: edited.value.status,

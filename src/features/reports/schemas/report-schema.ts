@@ -60,6 +60,8 @@ const ReportLineSchema = v.object({
   changeRequestReason: v.nullable(v.string()),
   id: v.string(),
   projectName: v.string(),
+  /** 直前が承認済みだったかどうか。`status` が `pending` に戻った理由を読み分けます。 */
+  previouslyApproved: v.boolean(),
   salesOwner: v.object({ id: v.string(), name: v.string() }),
   status: ReportLineStatusSchema,
 });

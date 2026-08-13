@@ -32,6 +32,24 @@ describe("明細の編集", () => {
     },
   );
 
+  it("承認済みの明細を編集すると、直前が承認済みだったと分かる", () => {
+    // status だけでは「一度も見られていない未確認」と「承認後に編集された未確認」を
+    // 読み分けられません。営業がもう一度確認を求められる理由がこの区別です。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const edited = editLine(lineIn("in_review", "approved"));
+
+    expect(Result.isOk(edited) ? edited.value.wasApproved : null).toBe(true);
+  });
+
+  it.each(["changes_requested", "pending"] as const satisfies ReportLine["status"][])(
+    "%s の明細を編集しても、承認済みだったことにはならない",
+    (status) => {
+      const edited = editLine(lineIn("in_review", status));
+
+      expect(Result.isOk(edited) ? edited.value.wasApproved : null).toBe(false);
+    },
+  );
+
   it("下書き中も編集できる", () => {
     expect(Result.isOk(editLine(lineIn("draft")))).toBe(true);
   });

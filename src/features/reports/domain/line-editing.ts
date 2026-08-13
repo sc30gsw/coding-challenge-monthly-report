@@ -35,15 +35,19 @@ function isEditable(reportStatus: ReportStatus) {
  * これが無いと「営業が承認 → 管理者が金額を書き換える → 全明細が承認済みなので確定できる」
  * が成立し、取引先に出る書類として業務が破綻します。差し戻し対応で編集を重ねるほど
  * 確定は遠のきますが、それは業務として正しい遠のき方です。
+ *
+ * `wasApproved` は編集の直前が `approved` だったかどうかです。`status` だけでは
+ * 「一度も見られていない未確認」と「承認後に編集されて戻った未確認」を読み分けられません。
+ * @see docs/adr/0007-approval-is-bound-to-content.md
  */
 export function editLine(
   line: Record<"reportStatus", ReportStatus> & Record<"status", ReportLine["status"]>,
-): Result<{ status: "pending" }, TransitionNotAllowed> {
+): Result<{ status: "pending"; wasApproved: boolean }, TransitionNotAllowed> {
   if (!isEditable(line.reportStatus)) {
     return refuse(line.reportStatus, "pending", "編集");
   }
 
-  return Result.ok({ status: "pending" as const });
+  return Result.ok({ status: "pending" as const, wasApproved: line.status === "approved" });
 }
 
 /** 明細の追加。確認依頼後も足せます（足した行は未確認なので、確定は自動的に遠のきます）。 */

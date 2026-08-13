@@ -591,6 +591,63 @@ describe("明細の編集と削除", () => {
     expect(updated?.status).toBe("pending");
   });
 
+  it("承認済みの明細を編集すると、承認済みだったことが分かる", async () => {
+    // status だけでは「一度も見られていない未確認」と「承認後に編集された未確認」を
+    // 読み分けられません。営業がもう一度確認を求められる理由がこれです。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const { line, reportId } = await approvedLineInReview();
+
+    await call(`/lines/${line.id}`, {
+      body: { amount: "500000", projectName: "元の案件名", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+
+    const after = await call(`/reports/${reportId}`, { cookie: admin });
+    const [updated] = after.json<ReportDetail>().lines;
+
+    expect(updated?.previouslyApproved).toBe(true);
+  });
+
+  it("再承認すると、承認済みだったという印は消える", async () => {
+    const { line, reportId } = await approvedLineInReview();
+
+    await call(`/lines/${line.id}`, {
+      body: { amount: "500000", projectName: "元の案件名", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+    await call(`/lines/${line.id}/approve`, { cookie: sales, method: "POST" });
+
+    const after = await call(`/reports/${reportId}`, { cookie: admin });
+    const [updated] = after.json<ReportDetail>().lines;
+
+    expect(updated?.previouslyApproved).toBe(false);
+  });
+
+  it("一度も承認されていない明細を編集しても、承認済みだったことにはならない", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const detail = await call(`/reports/${report.id}`, { cookie: admin });
+    const [line] = detail.json<ReportDetail>().lines;
+
+    await call(`/lines/${line?.id}`, {
+      body: { amount: "2000", projectName: "案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+
+    const after = await call(`/reports/${report.id}`, { cookie: admin });
+    const [updated] = after.json<ReportDetail>().lines;
+
+    expect(updated?.previouslyApproved).toBe(false);
+  });
+
   it("編集で未確認に戻ると、確定の条件も満たさなくなる", async () => {
     const { line, reportId } = await approvedLineInReview();
 

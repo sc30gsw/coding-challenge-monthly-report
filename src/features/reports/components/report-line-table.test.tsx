@@ -22,6 +22,7 @@ const lines: ReportDetail["lines"] = [
     amount: "1000.00",
     changeRequestReason: null,
     id: "line-mine",
+    previouslyApproved: false,
     projectName: "自分の案件",
     salesOwner: { id: MINE, name: "佐藤 花子" },
     status: "pending",
@@ -30,6 +31,7 @@ const lines: ReportDetail["lines"] = [
     amount: "2000.00",
     changeRequestReason: null,
     id: "line-theirs",
+    previouslyApproved: false,
     projectName: "同僚の案件",
     salesOwner: { id: THEIRS, name: "鈴木 一郎" },
     status: "approved",
@@ -103,6 +105,32 @@ describe("確認の操作", () => {
       "data-disabled",
       "true",
     );
+  });
+
+  it("承認後に編集されて未確認に戻った行には、その旨が出る", async () => {
+    // status だけでは「一度も見られていない未確認」と「承認後に編集された未確認」を
+    // 読み分けられません。営業がもう一度確認を求められる理由がこれです。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const editedAfterApproval = [
+      { ...lines[0], previouslyApproved: true },
+      lines[1],
+    ] as ReportDetail["lines"];
+
+    await renderWithProviders(
+      <ReportLineTable canReview={false} lines={editedAfterApproval} viewerId={MINE} />,
+    );
+
+    expect(
+      screen.getByText("承認済みでしたが、内容が編集されて未確認に戻りました"),
+    ).toBeInTheDocument();
+  });
+
+  it("一度も確認されていない行には、編集後の案内が出ない", async () => {
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
+
+    expect(
+      screen.queryByText("承認済みでしたが、内容が編集されて未確認に戻りました"),
+    ).not.toBeInTheDocument();
   });
 
   it("差し戻しの理由が表示される", async () => {
