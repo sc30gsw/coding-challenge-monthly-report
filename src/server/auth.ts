@@ -32,23 +32,45 @@ async function findUser(id: string): Promise<SessionUser | null> {
   return found ?? null;
 }
 
+type CookieJar = Record<string, { value?: unknown } | undefined>;
+
+/** 署名が壊れていると Elysia は値を落とします。読めなかった時点で未ログイン扱いです。 */
+async function currentUser(cookie: CookieJar) {
+  const signed = cookie[SESSION_COOKIE]?.value;
+
+  if (typeof signed !== "string") {
+    return null;
+  }
+
+  return await findUser(signed);
+}
+
 export const auth = new Elysia({ name: "auth" })
   /**
-   * 認可判定が通る唯一の入口です。ルートに `session: true` を付けると、
+   * 認可判定が通る唯一の入口です。ルートに `session: true` / `admin: true` を付けると、
    * 署名の検証とユーザーの解決を経た `user` がハンドラに渡ります。
+   *
+   * 画面にボタンを出さないことは防御ではありません。拒否するのは常にここです。
    */
   .macro({
-    session: {
+    admin: {
       async resolve({ cookie, status }) {
-        // 署名が壊れていると Elysia は値を落とします。読めなかった時点で拒否します。
-        const signed = cookie[SESSION_COOKIE]?.value;
-        const userId = typeof signed === "string" ? signed : null;
+        const user = await currentUser(cookie);
 
-        if (!userId) {
+        if (!user) {
           return status(401, "Not signed in");
         }
 
-        const user = await findUser(userId);
+        if (user.role !== "admin") {
+          return status(403, "Administrators only");
+        }
+
+        return { user };
+      },
+    },
+    session: {
+      async resolve({ cookie, status }) {
+        const user = await currentUser(cookie);
 
         if (!user) {
           return status(401, "Not signed in");

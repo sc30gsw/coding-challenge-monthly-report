@@ -7,6 +7,7 @@ import * as v from "valibot";
 import { db } from "~/db/client";
 import { auth, SESSION_COOKIE } from "~/server/auth";
 import { env } from "~/server/env";
+import { reportRoutes } from "~/server/reports";
 
 /**
  * API 層。TanStack Start のサーバールートにマウントするため `.listen()` は呼びません。
@@ -51,6 +52,7 @@ export const app = new Elysia({
     }
   })
   .use(auth)
+  .use(reportRoutes)
   .get(
     "/health",
     async () => {

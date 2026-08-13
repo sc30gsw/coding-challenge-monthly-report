@@ -3,6 +3,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 
 import { fetchSelectableUsers, login } from "~/features/auth/api/session";
 import type { SessionUser } from "~/features/auth/schemas/session-schema";
+import { orThrow } from "~/lib/api/result";
 
 const ROLE_LABELS = {
   admin: "管理者",
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/login")({
     }
   },
   component: LoginPage,
-  loader: async () => ({ users: await fetchSelectableUsers() }),
+  loader: async () => ({ users: orThrow(await fetchSelectableUsers()) }),
 });
 
 function LoginPage() {

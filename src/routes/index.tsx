@@ -7,6 +7,11 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/login" });
     }
 
+    // 管理者は報告書の一覧が起点です。営業向けの一覧は issue #5 で入ります。
+    if (context.user.role === "admin") {
+      throw redirect({ to: "/reports" });
+    }
+
     return { user: context.user };
   },
   component: Home,
