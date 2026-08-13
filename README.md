@@ -181,19 +181,19 @@
 
 | 領域              | 採用                             | 選定理由                                                                                                                                                                                       |
 | ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| アプリの土台      | TanStack Start + React 19        | 確定後の書き換え禁止と権限判定を、ページを開く時点でサーバー側で行うため。ブラウザだけで判定すると、確定済みでも画面から書き換えられます → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
-| 開発の手順        | Vite+ (`vp`)                     | 採点者と自分の手順を 1 つのコマンドに揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                                                           |
-| 裏側の窓口        | ElysiaJS                         | 型の付いた窓口と仕様書を出せるため。画面用の処理と窓口を分け、調査しやすくします → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)                                                 |
-| 型の共有 / 仕様書 | Eden Treaty + `@elysia/openapi`  | 画面が使う型は窓口からそのまま付くので、生成し忘れがありません。仕様書は採点者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                                  |
-| 入力ルール        | Valibot                          | サーバー・画面・仕様書の入力ルールを 1 箇所にするため。別々に書くと、片方だけ直して穴が開きます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                        |
-| 入力フォーム      | Formisch (`@formisch/react`)     | その入力ルールから画面のフォームを直接作れるため。何を聞いているかは、ルールを見れば分かります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                         |
-| 想定内の失敗      | better-result                    | 「確定できない」のような想定内の失敗を、不具合と分けて扱えるため。画面にも窓口にも同じ理由が届きます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md)                               |
-| 画面の部品        | Mantine                          | 業務画面の部品が最も揃っているため。テーブル等を自作せず、版管理に時間を使います → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                         |
-| 部品の配置        | Tailwind CSS 4                   | 部品の外側の配置を短く書くため。見た目は Mantine に任せます → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                                              |
-| 保管庫との橋渡し  | Drizzle                          | 書いた定義が保管庫の言葉に近く、約束を隠さないため。読めば「何が効いているか」が分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                             |
-| データの保管庫    | PostgreSQL                       | 「確定後は書き換え禁止」「進行中の版は系列に 1 つ」を、アプリだけでなく保管庫にも書けるため → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                            |
-| 再現の手段        | Docker                           | 採点者が同じ保管庫を再現するための手段です。手元にコピーして動かすためのコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                    |
-| ログイン          | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。大事なのは「誰が何をしてよいか」をサーバーで判定することです。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)                                    |
+| フレームワーク      | TanStack Start + React 19        | 確定後の書き換え禁止と権限判定を、ページを開く時点でサーバー側で行うため。ブラウザだけで判定すると、確定済みでも画面から書き換えられます → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
+|  統合開発ツール      | Vite+ (`vp`)                     | すべての開発者のツールを 1 つのコマンドに揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                                                           |
+| API        | ElysiaJS                         | 型の付きの APIの提供 と仕様書を出せるため。画面用の処理とA PI を分け、調査しやすくします → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)                                                 |
+| 型の共有 / API仕様書 | Eden Treaty + `@elysia/openapi`  | 画面が使う型は API からそのまま付くので、生成し忘れがありません。仕様書は全開発者・関係者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                                  |
+| バリデーション        | Valibot                          | サーバー・画面・仕様書のバリデーションルールを 1 箇所にするため。別々に書くと、片方だけ直して穴が開きます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                        |
+| フォーム      | Formisch (`@formisch/react`)     | バリデーションルールから画面のフォームを直接作れるため。何を聞いているかは、Valibot スキーマを見れば分かります（フォーム上のSSoT契約の遵守） → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                         |
+| エラーハンドリング      | better-result                    | 「確定できない」のような想定内の失敗を、不具合と分けて扱えるため。画面にも API にも同じ理由が届きます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md)                               |
+| コンポーネントライブラリ        | Mantine UI                         | 業務画面の部品が最も揃っているため。テーブル等を自作せず、版管理に時間を使います → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                         |
+| スタイリングソリューション        | Tailwind CSS 4                   | 部品の外側の配置を短く書くため。見た目は Mantine に任せます → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                                              |
+| ORM  | Drizzle                          | 書いた定義が保管庫の言葉に近く、約束を隠さないため。読めば「何が効いているか」が分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                             |
+| DB    | PostgreSQL                       | 「確定後は書き換え禁止」「進行中の版は系列に 1 つ」を、アプリだけでなく保管庫にも書けるため → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                            |
+| DB環境        | Docker                           | 採点者が同じ保管庫を再現するための手段です。手元にコピーして動かすためのコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                    |
+| 認証          | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。大事なのは「誰が何をしてよいか」をサーバーで判定することです。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)                                    |
 
 **Mantine と Tailwind は、デザインの仕組みを二枚持っているわけではありません。** 役割を分けています。
 
