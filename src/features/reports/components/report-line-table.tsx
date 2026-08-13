@@ -46,12 +46,9 @@ export function ReportLineTable({
   salesUsers = NO_SALES_USERS,
   viewerId,
 }: ReportLineTableProps) {
+  // 明細が無いときの案内は ReviewProgressSummary が持ちます。ここでは出しません。
   if (lines.length === 0) {
-    return (
-      <Text c="dimmed" size="sm">
-        明細がありません。確定するには 1 件以上必要です。
-      </Text>
-    );
+    return null;
   }
 
   return (

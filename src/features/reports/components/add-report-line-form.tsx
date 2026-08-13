@@ -1,4 +1,4 @@
-import { Field, Form, setInput, useForm } from "@formisch/react";
+import { Field, Form, reset, setInput, useForm } from "@formisch/react";
 import type { SubmitHandler } from "@formisch/react";
 import { Button, Group, NumberInput, Select, TextInput } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
@@ -26,6 +26,9 @@ export function AddReportLineForm({ reportId, salesUsers }: AddReportLineFormPro
 
   const handleSubmit: SubmitHandler<typeof CreateReportLineInputSchema> = async (input) => {
     await addReportLine(reportId, input);
+    // 続けて別の明細を足すので入力を空に戻します。前の値が残っていると、
+    // 書き換え忘れがそのまま次の行として登録されます。
+    reset(form);
     await router.invalidate();
   };
 

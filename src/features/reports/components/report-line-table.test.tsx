@@ -121,8 +121,10 @@ describe("管理者の操作", () => {
     expect(screen.getAllByRole("button", { name: "編集" })).toHaveLength(2);
   });
 
-  it("削除は下書き中だけ出る", async () => {
+  it("削除できないときも、ボタンは消さずに押せなくする", async () => {
     // 確認依頼後に消せると、差し戻された指摘ごと消して確定できてしまいます。
+    // ただしボタンごと消すと「なぜできないか」が画面から読み取れなくなります。
+    // @see docs/adr/0012-confirm-preconditions.md
     await renderWithProviders(
       <ReportLineTable
         canDelete={false}
@@ -134,7 +136,26 @@ describe("管理者の操作", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "削除" })).not.toBeInTheDocument();
+    const [remove] = screen.getAllByRole("button", { name: "削除" });
+
+    expect(remove).toHaveAttribute("data-disabled", "true");
+  });
+
+  it("下書き中は削除できる", async () => {
+    await renderWithProviders(
+      <ReportLineTable
+        canDelete
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    const [remove] = screen.getAllByRole("button", { name: "削除" });
+
+    expect(remove).not.toHaveAttribute("data-disabled");
   });
 
   it("編集フォームは、承認が取り直しになることを伝える", async () => {
@@ -151,5 +172,34 @@ describe("管理者の操作", () => {
     await user.click(screen.getAllByRole("button", { name: "編集" })[0] as HTMLElement);
 
     expect(await screen.findByText(/確認状況は未確認に戻ります/)).toBeInTheDocument();
+  });
+});
+
+describe("編集フォームの操作", () => {
+  const salesUsers = [
+    { id: MINE, name: "佐藤 花子", role: "sales" as const },
+    { id: THEIRS, name: "鈴木 一郎", role: "sales" as const },
+  ];
+
+  it("担当営業を選び直してもフォームが閉じない", async () => {
+    // Select のドロップダウンがポータルに出ると、選択クリックが Popover にとって
+    // 「外側のクリック」になり、入力途中のフォームごと閉じてしまいます。
+    const { user } = await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "編集" })[0] as HTMLElement);
+    await user.click(await screen.findByLabelText("担当営業", { selector: "input" }));
+    // 表の行にも同じ名前があるため、後から現れるドロップダウン側を選びます。
+    const options = await screen.findAllByText("鈴木 一郎");
+    await user.click(options.at(-1) as HTMLElement);
+
+    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
   });
 });

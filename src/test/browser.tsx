@@ -38,6 +38,11 @@ if (typeof window !== "undefined" && typeof window.ResizeObserver !== "function"
   };
 }
 
+if (typeof Element !== "undefined" && typeof Element.prototype.scrollIntoView !== "function") {
+  // Select が候補までスクロールするのに使います。jsdom には無いので何もしない実装で足ります。
+  Element.prototype.scrollIntoView = () => {};
+}
+
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
   window.matchMedia = (query: string) =>
     ({
