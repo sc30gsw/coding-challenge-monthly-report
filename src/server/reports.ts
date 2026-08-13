@@ -6,7 +6,9 @@ import {
   ClientSchema,
   CreateReportInputSchema,
   CreateReportLineInputSchema,
+  LineIdParamsSchema,
   ReportDetailSchema,
+  ReportIdParamsSchema,
   ReportSummarySchema,
   RequestChangesInputSchema,
 } from "~/features/reports/schemas/report-schema";
@@ -88,6 +90,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "報告書の詳細",
         tags: ["Reports"],
       },
+      params: ReportIdParamsSchema,
       // ステータスごとに宣言します。単一スキーマだと 200 しか返せません。
       response: { 200: ReportDetailSchema, ...failureResponses },
       session: true,
@@ -114,6 +117,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "明細の追加",
         tags: ["Reports"],
       },
+      params: ReportIdParamsSchema,
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
     },
   )
@@ -139,6 +143,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "明細の編集",
         tags: ["Reports"],
       },
+      params: LineIdParamsSchema,
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
     },
   )
@@ -163,6 +168,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "明細の削除",
         tags: ["Reports"],
       },
+      params: LineIdParamsSchema,
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
     },
   )
@@ -185,6 +191,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "明細の承認",
         tags: ["Reports"],
       },
+      params: LineIdParamsSchema,
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
       session: true,
     },
@@ -210,6 +217,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "明細の差し戻し",
         tags: ["Reports"],
       },
+      params: LineIdParamsSchema,
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
       session: true,
     },
@@ -235,6 +243,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "確定",
         tags: ["Reports"],
       },
+      params: ReportIdParamsSchema,
       response: { 200: ReportSummarySchema, ...failureResponses },
     },
   )
@@ -259,6 +268,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "修正版の作成",
         tags: ["Reports"],
       },
+      params: ReportIdParamsSchema,
       response: { 200: ReportSummarySchema, ...failureResponses },
     },
   )
@@ -283,6 +293,7 @@ export const reportRoutes = new Elysia({ name: "reports" })
         summary: "確認依頼",
         tags: ["Reports"],
       },
+      params: ReportIdParamsSchema,
       response: { 200: ReportSummarySchema, ...failureResponses },
     },
   );

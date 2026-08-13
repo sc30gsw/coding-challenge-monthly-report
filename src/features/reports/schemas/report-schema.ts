@@ -42,6 +42,19 @@ export const CreateReportLineInputSchema = v.object({
   salesOwnerId: v.pipe(v.string(), v.uuid("担当営業を選択してください")),
 });
 
+/**
+ * `:reportId` / `:lineId` の形です。ルートの `params` に付けて、URL に来た値を
+ * DB へ届く前に検証します。UUID でない値は Postgres の `22P02` を引き起こし、
+ * 生成 SQL とバインド値がそのまま 500 のボディに出てしまうためです。
+ */
+export const ReportIdParamsSchema = v.object({
+  reportId: v.pipe(v.string(), v.uuid("報告書の ID が不正です")),
+});
+
+export const LineIdParamsSchema = v.object({
+  lineId: v.pipe(v.string(), v.uuid("明細の ID が不正です")),
+});
+
 const ReportLineSchema = v.object({
   amount: v.string(),
   changeRequestReason: v.nullable(v.string()),

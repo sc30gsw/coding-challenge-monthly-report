@@ -46,10 +46,21 @@ export const app = new Elysia({
   /**
    * 署名の検証に失敗した Cookie は 400 ではなく 401 で返します。
    * 改竄した要求と、そもそもログインしていない要求を、呼び出し側から区別させないためです。
+   *
+   * `VALIDATION` / `NOT_FOUND` / `PARSE` は Elysia 既定の応答（422 / 404 / 400）に
+   * そのまま委ねます。ここで拾うのは、想定していない失敗（`UNKNOWN` / `INTERNAL_SERVER_ERROR`）
+   * だけです。既定のハンドラは `error.message` をそのまま本文に書くため、DB の例外だと
+   * 生成 SQL とバインド値が応答に漏れます。ここで拾わなければ、その形状を誰も決めていません。
    */
-  .onError(({ code, status }) => {
+  .onError(({ code, error, status }) => {
     if (code === "INVALID_COOKIE_SIGNATURE") {
       return status(401, "Not signed in");
+    }
+
+    if (code === "UNKNOWN" || code === "INTERNAL_SERVER_ERROR") {
+      console.error(error);
+
+      return status(500, "Internal server error");
     }
   })
   .use(auth)

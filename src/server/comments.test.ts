@@ -126,6 +126,12 @@ describe("明細へのコメント", () => {
     expect(res.status).toBe(404);
     expect(res.json<{ tag: string }>().tag).toBe("LineNotInReport");
   });
+
+  it("UUID の形をしていない報告書 ID は DB に届く前に拒否される", async () => {
+    const res = await call("/reports/not-a-uuid/comments", { cookie: admin });
+
+    expect(res.status).toBe(422);
+  });
 });
 
 describe("見える範囲", () => {

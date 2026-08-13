@@ -6,6 +6,7 @@ import {
   CommentSchema,
   CreateCommentInputSchema,
 } from "~/features/comments/schemas/comment-schema";
+import { ReportIdParamsSchema } from "~/features/reports/schemas/report-schema";
 import { auth } from "~/server/auth";
 import * as service from "~/server/comments-service";
 import { failureResponses, toHttpFailure } from "~/server/http-failure";
@@ -38,6 +39,7 @@ export const commentRoutes = new Elysia({ name: "comments" })
         summary: "コメントの一覧",
         tags: ["Comments"],
       },
+      params: ReportIdParamsSchema,
       response: { 200: v.array(CommentSchema), ...failureResponses },
       session: true,
     },
@@ -63,6 +65,7 @@ export const commentRoutes = new Elysia({ name: "comments" })
         summary: "コメントの投稿",
         tags: ["Comments"],
       },
+      params: ReportIdParamsSchema,
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
       session: true,
     },
