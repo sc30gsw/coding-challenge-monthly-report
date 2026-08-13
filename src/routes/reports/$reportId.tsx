@@ -11,6 +11,9 @@ import { ConfirmPanel } from "~/features/reports/components/confirm-panel";
 import { ReportLineTable } from "~/features/reports/components/report-line-table";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
 import { ReviewProgressSummary } from "~/features/reports/components/review-progress-summary";
+import { RevisionPanel } from "~/features/reports/components/revision-panel";
+import { VersionHistory } from "~/features/reports/components/version-history";
+import { deletionBlocker } from "~/features/reports/domain/line-editing";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
 import { orThrow } from "~/lib/api/result";
 
@@ -68,6 +71,8 @@ function ReportDetailPage() {
           </Group>
         </div>
 
+        <VersionHistory currentId={report.id} versions={report.versions} />
+
         <Card padding="md" radius="md" withBorder>
           <Group gap="xl">
             <div>
@@ -101,9 +106,14 @@ function ReportDetailPage() {
           <ReviewProgressSummary progress={report.progress} />
 
           <ReportLineTable
-            canDelete={isAdmin && report.status === "draft"}
             canEdit={isAdmin && (report.status === "draft" || report.status === "in_review")}
             canReview={!isAdmin && report.status === "in_review"}
+            // 押せない理由は拒否そのものから引き出します。UI に条件を書き写すとずれます。
+            deleteBlocker={deletionBlocker({
+              lineCount: report.lines.length,
+              reportStatus: report.status,
+              version: report.version,
+            })}
             lines={report.lines}
             salesUsers={salesUsers}
             viewerId={user.id}
@@ -124,6 +134,8 @@ function ReportDetailPage() {
         {isAdmin && report.status === "draft" ? <RequestReviewPanel report={report} /> : null}
 
         {isAdmin && report.status === "in_review" ? <ConfirmPanel report={report} /> : null}
+
+        {isAdmin && report.status === "confirmed" ? <RevisionPanel report={report} /> : null}
 
         <CommentThread
           comments={comments}

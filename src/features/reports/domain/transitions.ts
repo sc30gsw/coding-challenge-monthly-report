@@ -1,6 +1,7 @@
 import { Result } from "better-result";
 
 import { ReportHasNoLines, TransitionNotAllowed } from "~/features/reports/domain/errors";
+import { REPORT_STATUS_LABELS } from "~/features/reports/domain/status-labels";
 import type { ReportStatus } from "~/features/reports/schemas/report-schema";
 
 /**
@@ -18,13 +19,6 @@ type ReportState = {
   status: ReportStatus;
 };
 
-const STATUS_LABELS = {
-  confirmed: "確定済み",
-  draft: "下書き",
-  in_review: "確認中",
-  superseded: "旧版",
-} as const satisfies Record<ReportStatus, string>;
-
 /**
  * 確認依頼。下書きから、明細が 1 件以上あるときだけ進めます。
  *
@@ -40,7 +34,7 @@ export function requestReview(
     return Result.err(
       new TransitionNotAllowed({
         from: report.status,
-        message: `${STATUS_LABELS[report.status]}の報告書は確認依頼できません`,
+        message: `${REPORT_STATUS_LABELS[report.status]}の報告書は確認依頼できません`,
         to: "in_review",
       }),
     );

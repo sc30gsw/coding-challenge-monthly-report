@@ -1,6 +1,7 @@
 import { Result } from "better-result";
 
-import { TransitionNotAllowed } from "~/features/reports/domain/errors";
+import { ReportHasNoLines, TransitionNotAllowed } from "~/features/reports/domain/errors";
+import { REPORT_STATUS_LABELS } from "~/features/reports/domain/status-labels";
 import type { ReportLine, ReportStatus } from "~/features/reports/schemas/report-schema";
 
 /**
@@ -11,13 +12,6 @@ import type { ReportLine, ReportStatus } from "~/features/reports/schemas/report
  * @see docs/adr/0007-approval-is-bound-to-content.md
  */
 
-const STATUS_LABELS = {
-  confirmed: "確定済み",
-  draft: "下書き",
-  in_review: "確認中",
-  superseded: "旧版",
-} as const satisfies Record<ReportStatus, string>;
-
 /** 中身を書き換えられるのは、まだ提出していない間だけです。 */
 const EDITABLE_REPORT_STATUSES = ["draft", "in_review"] as const;
 
@@ -25,7 +19,7 @@ function refuse(reportStatus: ReportStatus, to: string, what: string) {
   return Result.err(
     new TransitionNotAllowed({
       from: reportStatus,
-      message: `${STATUS_LABELS[reportStatus]}の報告書では明細を${what}できません`,
+      message: `${REPORT_STATUS_LABELS[reportStatus]}の報告書では明細を${what}できません`,
       to,
     }),
   );
@@ -63,21 +57,57 @@ export function addLine(
   return Result.ok(true as const);
 }
 
+type RemovalState = {
+  /** 削除する前の件数。最後の 1 件かどうかの判定に要ります。 */
+  lineCount: number;
+  reportStatus: ReportStatus;
+  version: number;
+};
+
 /**
- * 明細の削除。**下書き中だけ**です。
+ * 明細の削除。**下書き中だけ**です。加えて、**修正版は 0 件にできません。**
  *
  * 確認依頼後に削除を許すと「営業が差し戻した明細を管理者が消す → 指摘が対応されないまま
  * 消える → 残りが全部承認済みなので確定できる」という経路ができます。禁止すれば、
  * この穴を塞ぐための追加の機構が一切要りません。
+ *
+ * 修正版で 0 件を禁じるのは、旧版を `superseded` にした時点で「これはもう最新ではない」と
+ * 宣言済みだからです。その後継を空にすると、確認依頼にも進めず（0 件は拒否される）、
+ * 旧版へも戻れない（`superseded` からは修正版を作れない）系列が残ります。しかも空の版は
+ * 営業の一覧に出ないので、**誰にも見えないまま止まります。**
+ * 初版が 0 件でいられるのは、まだ誰にも何も約束していないからです。
+ * @see docs/adr/0009-revision-is-a-copied-report.md
  */
 export function removeLine(
-  line: Record<"reportStatus", ReportStatus>,
-): Result<true, TransitionNotAllowed> {
-  if (line.reportStatus !== "draft") {
-    return refuse(line.reportStatus, "deleted", "削除");
+  report: RemovalState,
+): Result<true, ReportHasNoLines | TransitionNotAllowed> {
+  if (report.reportStatus !== "draft") {
+    return refuse(report.reportStatus, "deleted", "削除");
+  }
+
+  if (report.version > 1 && report.lineCount <= 1) {
+    return Result.err(
+      new ReportHasNoLines({
+        message: "修正版の明細を 0 件にはできません。先に差し替える明細を追加してください",
+        reportId: "",
+      }),
+    );
   }
 
   return Result.ok(true as const);
+}
+
+/**
+ * 削除できない理由。押せない理由を画面に出すために、拒否そのものから引き出します。
+ *
+ * UI 側に条件を書き写すと、規則と説明文が別々に育ってずれます。非活性化は表示の都合で
+ * あって防御ではなく、拒否の保証は `removeLine` を通るサーバー側にあります。
+ * @see docs/adr/0012-confirm-preconditions.md
+ */
+export function deletionBlocker(report: RemovalState) {
+  const removed = removeLine(report);
+
+  return Result.isError(removed) ? removed.error.message : null;
 }
 
 /**

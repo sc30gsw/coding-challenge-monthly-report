@@ -10,9 +10,14 @@ import { Result, TaggedError } from "better-result";
  */
 
 class ApiError extends TaggedError("ApiError")<{
-  /** サーバーが返した業務上の理由。ネットワーク障害など、無いこともあります。 */
+  /** サーバーが返した業務上の理由のタグ。ネットワーク障害など、無いこともあります。 */
   detail: string | null;
   message: string;
+  /**
+   * サーバーが返した人間可読の理由。**そのまま画面に出せます。**
+   * 拒否の文言はドメイン層が持っており、クライアントで訳し直すと必ずずれます。
+   */
+  reason: string | null;
   status: number;
 }> {}
 
@@ -26,14 +31,17 @@ type EdenResponse<T> = {
   status: number;
 };
 
-function readTag(error: unknown) {
+/** 失敗の本体（`{ message, tag }`）から 1 項目を読みます。 */
+function readFailure(error: unknown, key: "message" | "tag") {
   if (typeof error !== "object" || error === null || !("value" in error)) {
     return null;
   }
 
   const { value } = error;
 
-  return typeof value === "object" && value !== null && "tag" in value ? String(value.tag) : null;
+  return typeof value === "object" && value !== null && key in value
+    ? String(value[key as keyof typeof value])
+    : null;
 }
 
 function readStatus(error: unknown, fallback: number) {
@@ -63,8 +71,9 @@ export function toResult<T>(response: EdenResponse<T>): Result<T, ApiError> {
   if (response.error) {
     return Result.err(
       new ApiError({
-        detail: readTag(response.error),
+        detail: readFailure(response.error, "tag"),
         message: "API request failed",
+        reason: readFailure(response.error, "message"),
         status: readStatus(response.error, response.status),
       }),
     );
@@ -72,7 +81,12 @@ export function toResult<T>(response: EdenResponse<T>): Result<T, ApiError> {
 
   if (response.data === null) {
     return Result.err(
-      new ApiError({ detail: null, message: "API returned no data", status: response.status }),
+      new ApiError({
+        detail: null,
+        message: "API returned no data",
+        reason: null,
+        status: response.status,
+      }),
     );
   }
 

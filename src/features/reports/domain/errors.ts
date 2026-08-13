@@ -84,6 +84,19 @@ export class LineNotInReport extends TaggedError("LineNotInReport")<{
   reportId: string;
 }> {}
 
+/**
+ * 同じ系列に作成中の修正版が既にある、という拒否です。
+ *
+ * 修正版が 2 つ並走すると、どちらが正なのかが決まりません。DB の部分ユニークが
+ * 最後の砦ですが、制約違反をそのまま返しても利用者には何も伝わらないので、
+ * その手前で理由の付いた拒否にします。
+ * @see docs/adr/0009-revision-is-a-copied-report.md
+ */
+export class RevisionAlreadyInProgress extends TaggedError("RevisionAlreadyInProgress")<{
+  message: string;
+  version: number;
+}> {}
+
 export type ReportError =
   | ClientNotFound
   | LineNotInReport
@@ -92,4 +105,5 @@ export type ReportError =
   | ReportHasNoLines
   | ReportNotFound
   | ReportNotVisible
+  | RevisionAlreadyInProgress
   | TransitionNotAllowed;

@@ -22,6 +22,7 @@ export function toHttpFailure(error: ReportError) {
     ReportHasNoLines: () => ({ body, status: 409 as const }),
     ReportNotFound: () => ({ body, status: 404 as const }),
     ReportNotVisible: () => ({ body, status: 403 as const }),
+    RevisionAlreadyInProgress: () => ({ body, status: 409 as const }),
     TransitionNotAllowed: () => ({ body, status: 409 as const }),
   });
 }

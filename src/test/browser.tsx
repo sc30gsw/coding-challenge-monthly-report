@@ -5,6 +5,7 @@ import {
   RouterProvider,
   createMemoryHistory,
   createRootRoute,
+  createRoute,
   createRouter,
 } from "@tanstack/react-router";
 import { act, cleanup, render } from "@testing-library/react";
@@ -139,15 +140,27 @@ export async function signInBrowserAs(userId: string) {
   });
 }
 
+type RenderOptions = {
+  /**
+   * `Link` や `navigate` の行き先として解決できるようにするパスです。
+   * ルーターは知らないパスを組み立てられず、そのまま例外になります。
+   */
+  routes?: string[];
+};
+
 /**
  * Mantine の provider と、`useRouter` を使う部品のためのルーターを与えて描画します。
  * 部品側にテスト用の分岐を持ち込まないための場所です。
  */
-export async function renderWithProviders(ui: ReactNode) {
+export async function renderWithProviders(ui: ReactNode, { routes = [] }: RenderOptions = {}) {
   const rootRoute = createRootRoute({ component: () => ui });
   const router = createRouter({
     history: createMemoryHistory({ initialEntries: ["/"] }),
-    routeTree: rootRoute,
+    routeTree: rootRoute.addChildren(
+      routes.map((path) =>
+        createRoute({ component: () => null, getParentRoute: () => rootRoute, path }),
+      ),
+    ),
   });
 
   // provider の構成はアプリ（`src/routes/__root.tsx`）と揃えます。ずれると、

@@ -6,6 +6,7 @@ import {
   TransitionNotAllowed,
 } from "~/features/reports/domain/errors";
 import type { reviewProgress } from "~/features/reports/domain/line-editing";
+import { REPORT_STATUS_LABELS } from "~/features/reports/domain/status-labels";
 import type { ReportStatus } from "~/features/reports/schemas/report-schema";
 
 /**
@@ -23,13 +24,6 @@ type ReportState = {
   status: ReportStatus;
 };
 
-const STATUS_LABELS = {
-  confirmed: "確定済み",
-  draft: "下書き",
-  in_review: "確認中",
-  superseded: "旧版",
-} as const satisfies Record<ReportStatus, string>;
-
 /**
  * 確定できるのは、確認中で、明細が 1 件以上あり、そのすべてが承認済みのときだけです。
  *
@@ -43,7 +37,7 @@ export function confirmReport(
     return Result.err(
       new TransitionNotAllowed({
         from: report.status,
-        message: `${STATUS_LABELS[report.status]}の報告書は確定できません`,
+        message: `${REPORT_STATUS_LABELS[report.status]}の報告書は確定できません`,
         to: "confirmed",
       }),
     );

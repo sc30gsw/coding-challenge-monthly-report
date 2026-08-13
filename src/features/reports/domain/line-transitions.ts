@@ -2,6 +2,7 @@ import { Result } from "better-result";
 
 import type { Role } from "~/features/auth/schemas/session-schema";
 import { NotLineOwner, TransitionNotAllowed } from "~/features/reports/domain/errors";
+import { REPORT_STATUS_LABELS } from "~/features/reports/domain/status-labels";
 import type { ReportLine, ReportStatus } from "~/features/reports/schemas/report-schema";
 
 /**
@@ -30,13 +31,6 @@ type Actor = {
   role: Role;
 };
 
-const STATUS_LABELS = {
-  confirmed: "確定済み",
-  draft: "下書き",
-  in_review: "確認中",
-  superseded: "旧版",
-} as const satisfies Record<ReportStatus, string>;
-
 /**
  * 確認できる状況かを判定します。
  *
@@ -63,7 +57,7 @@ function ensureReviewable(
     return Result.err(
       new TransitionNotAllowed({
         from: line.reportStatus,
-        message: `${STATUS_LABELS[line.reportStatus]}の報告書の明細は確認できません`,
+        message: `${REPORT_STATUS_LABELS[line.reportStatus]}の報告書の明細は確認できません`,
         to,
       }),
     );

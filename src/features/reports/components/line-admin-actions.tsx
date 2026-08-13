@@ -20,8 +20,8 @@ import type { ReportDetail } from "~/features/reports/schemas/report-schema";
 import { CreateReportLineInputSchema } from "~/features/reports/schemas/report-schema";
 
 type LineAdminActionsProps = {
-  /** 削除できるのは下書き中だけです。確認依頼後は差し戻しを消せてしまうため。 */
-  canDelete: boolean;
+  /** 削除できない理由。`null` なら削除できます。文言はドメイン層が持ちます。 */
+  deleteBlocker: string | null;
   line: ReportDetail["lines"][number];
   salesUsers: SessionUser[];
 };
@@ -33,7 +33,9 @@ type LineAdminActionsProps = {
  * その旨をフォームにも書いています。
  * @see docs/adr/0007-approval-is-bound-to-content.md
  */
-export function LineAdminActions({ canDelete, line, salesUsers }: LineAdminActionsProps) {
+export function LineAdminActions({ deleteBlocker, line, salesUsers }: LineAdminActionsProps) {
+  const canDelete = deleteBlocker === null;
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const router = useRouter();
   const form = useForm({
@@ -123,12 +125,7 @@ export function LineAdminActions({ canDelete, line, salesUsers }: LineAdminActio
 
       {/* 押せないときもボタンは消しません。なぜできないかが分からない画面にしないためです。
           @see docs/adr/0012-confirm-preconditions.md */}
-      <Tooltip
-        disabled={canDelete}
-        label="確認依頼後は削除できません。差し戻された指摘ごと消えてしまうためです"
-        multiline
-        w={240}
-      >
+      <Tooltip disabled={canDelete} label={deleteBlocker ?? ""} multiline w={240}>
         <Button
           color="red"
           data-disabled={canDelete ? undefined : true}

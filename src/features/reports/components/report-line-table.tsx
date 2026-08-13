@@ -3,11 +3,12 @@ import { Badge, Group, Stack, Table, Text } from "@mantine/core";
 import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { LineAdminActions } from "~/features/reports/components/line-admin-actions";
 import { LineReviewActions } from "~/features/reports/components/line-review-actions";
-import type { ReportDetail, ReportLine } from "~/features/reports/schemas/report-schema";
+import { REPORT_LINE_STATUS_LABELS } from "~/features/reports/domain/status-labels";
+import type { ReportDetail } from "~/features/reports/schemas/report-schema";
 
 type ReportLineTableProps = {
-  /** 明細を消せるかどうか。下書き中だけです。 */
-  canDelete?: boolean;
+  /** 明細を消せない理由。`null` なら消せます。文言はドメイン層が持ちます。 */
+  deleteBlocker?: string | null;
   /** 明細を書き換えられるかどうか。管理者で、報告書が下書きか確認中のときだけです。 */
   canEdit?: boolean;
   /** 自分の担当行に確認の操作を出すかどうか。報告書が確認中で、見ている人が営業のときだけです。 */
@@ -22,12 +23,6 @@ type ReportLineTableProps = {
 /** 既定値をレンダーのたびに作らないよう、モジュール定数にします。 */
 const NO_SALES_USERS: SessionUser[] = [];
 
-const LINE_STATUS_LABELS = {
-  approved: "承認済み",
-  changes_requested: "差し戻し",
-  pending: "未確認",
-} as const satisfies Record<ReportLine["status"], string>;
-
 const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" });
 
 /**
@@ -39,9 +34,9 @@ const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" 
  * @see docs/adr/0010-sales-owner-lives-on-the-line.md
  */
 export function ReportLineTable({
-  canDelete = false,
   canEdit = false,
   canReview,
+  deleteBlocker = "この報告書では明細を削除できません",
   lines,
   salesUsers = NO_SALES_USERS,
   viewerId,
@@ -78,7 +73,7 @@ export function ReportLineTable({
             </Table.Td>
             <Table.Td>
               <Stack gap={2}>
-                <Text size="sm">{LINE_STATUS_LABELS[line.status]}</Text>
+                <Text size="sm">{REPORT_LINE_STATUS_LABELS[line.status]}</Text>
                 {/* 差し戻しの理由は、管理者が何を直すべきかを知るための情報です。
                     編集で未確認に戻ったあとも履歴として残ります。 */}
                 {line.changeRequestReason ? (
@@ -97,7 +92,11 @@ export function ReportLineTable({
                 <LineReviewActions lineId={line.id} />
               ) : null}
               {canEdit ? (
-                <LineAdminActions canDelete={canDelete} line={line} salesUsers={salesUsers} />
+                <LineAdminActions
+                  deleteBlocker={deleteBlocker}
+                  line={line}
+                  salesUsers={salesUsers}
+                />
               ) : null}
             </Table.Td>
           </Table.Tr>

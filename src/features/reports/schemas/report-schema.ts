@@ -80,10 +80,23 @@ const ReviewProgressSchema = v.object({
   total: v.number(),
 });
 
+/**
+ * 同じ系列の版。旧版を消さずに残す設計なので、どの版を見ていて、
+ * 他にどの版があるのかを画面から辿れる必要があります。
+ * @see docs/adr/0009-revision-is-a-copied-report.md
+ */
+const SeriesVersionSchema = v.object({
+  id: v.string(),
+  status: ReportStatusSchema,
+  version: v.number(),
+});
+
 export const ReportDetailSchema = v.object({
   ...reportCoverEntries,
   lines: v.array(ReportLineSchema),
   progress: ReviewProgressSchema,
+  /** 版番号の昇順。自分自身も含みます。 */
+  versions: v.array(SeriesVersionSchema),
 });
 
 export type Client = v.InferOutput<typeof ClientSchema>;
@@ -94,3 +107,4 @@ export type ReportDetail = v.InferOutput<typeof ReportDetailSchema>;
 export type ReportLine = v.InferOutput<typeof ReportLineSchema>;
 export type ReportStatus = v.InferOutput<typeof ReportStatusSchema>;
 export type ReportSummary = v.InferOutput<typeof ReportSummarySchema>;
+export type SeriesVersion = v.InferOutput<typeof SeriesVersionSchema>;

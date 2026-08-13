@@ -13,6 +13,7 @@ import {
 import { auth } from "~/server/auth";
 import { failureResponses, toHttpFailure } from "~/server/http-failure";
 import * as service from "~/server/reports-service";
+import { createRevision } from "~/server/revisions-service";
 
 /**
  * 表紙と明細の HTTP 境界です。ここに業務ロジックは置きません。
@@ -232,6 +233,30 @@ export const reportRoutes = new Elysia({ name: "reports" })
         description:
           "報告書を確定します。明細が 1 件以上あり、そのすべてが承認済みのときだけです。確定後の内容はアプリ層と DB トリガの二重で変更を拒否します。",
         summary: "確定",
+        tags: ["Reports"],
+      },
+      response: { 200: ReportSummarySchema, ...failureResponses },
+    },
+  )
+  .post(
+    "/reports/:reportId/revisions",
+    async ({ params, status }) => {
+      const revision = await createRevision(params.reportId);
+
+      if (Result.isError(revision)) {
+        const failure = toHttpFailure(revision.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return revision.value;
+    },
+    {
+      admin: true,
+      detail: {
+        description:
+          "確定済みの報告書から修正版を作ります。表紙と明細が複製された新しい版が下書きとして作られ、元の版は旧版として不変のまま残ります。複製された明細は未確認から始まり、承認を取り直します。コメントは複製されません。",
+        summary: "修正版の作成",
         tags: ["Reports"],
       },
       response: { 200: ReportSummarySchema, ...failureResponses },

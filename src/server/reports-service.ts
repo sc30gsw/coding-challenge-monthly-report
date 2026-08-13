@@ -1,5 +1,6 @@
 import { Result } from "better-result";
-import { and, desc, eq, exists, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, inArray, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { db } from "~/db/client";
 import { clients, reportLines, reports, users } from "~/db/schema";
@@ -58,7 +59,8 @@ const coverColumns = {
   version: reports.version,
 };
 
-async function findSummary(reportId: string) {
+/** 修正版の作成後にも同じ形で返したいので、`revisions-service` へ公開しています。 */
+export async function findSummary(reportId: string) {
   const [summary] = await db
     .select(coverColumns)
     .from(reports)
@@ -127,6 +129,26 @@ export async function createReport(
     : Result.err(new ReportNotFound({ message: "作成した報告書を読み出せません", reportId: id }));
 }
 
+/**
+ * 同じ系列の版を、番号の昇順で返します。
+ *
+ * 旧版を消さずに残す設計なので、いま何版を見ているのかと、他にどの版があるのかが
+ * 画面から辿れないと、確定済みの内容を確認する手段が無くなります。
+ * @see docs/adr/0009-revision-is-a-copied-report.md
+ */
+async function listSeriesVersions(reportId: string) {
+  const series = db
+    .select({ seriesId: reports.seriesId })
+    .from(reports)
+    .where(eq(reports.id, reportId));
+
+  return await db
+    .select({ id: reports.id, status: reports.status, version: reports.version })
+    .from(reports)
+    .where(inArray(reports.seriesId, series))
+    .orderBy(asc(reports.version));
+}
+
 async function getReportDetail(reportId: string): Promise<Result<ReportDetail, ReportError>> {
   const summary = await findSummary(reportId);
 
@@ -150,7 +172,12 @@ async function getReportDetail(reportId: string): Promise<Result<ReportDetail, R
 
   const { lineCount: _lineCount, ...cover } = summary;
 
-  return Result.ok({ ...cover, lines, progress: reviewProgress(lines) });
+  return Result.ok({
+    ...cover,
+    lines,
+    progress: reviewProgress(lines),
+    versions: await listSeriesVersions(reportId),
+  });
 }
 
 export async function addReportLine(
@@ -199,6 +226,32 @@ function ownsAnyLine(viewerId: string) {
   );
 }
 
+/** 系列の相関副問い合わせで、外側の reports と自己結合するための別名です。 */
+const seriesReports = alias(reports, "series_reports");
+
+/**
+ * **閲覧の判定は系列単位**です。系列のどれかの版で担当明細を持つなら、その系列の
+ * 全ての版を読めます。
+ *
+ * 版ごとに判定すると、版の履歴に出ているリンクを踏んだ先で拒否されます。修正版で
+ * 担当が付け替えられた場合も、明細がまだ複製されていない場合も起こります。営業から見て
+ * 「担当を外れた」のか「まだ明細が入っていない」のかを区別する手段が無くなるので、
+ * 系列に広げます。触れる範囲（承認・差し戻し）は明細単位のまま変わりません。
+ * @see docs/adr/0009-revision-is-a-copied-report.md
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ */
+function ownsAnyLineInSeries(viewerId: string) {
+  return exists(
+    db
+      .select({ one: sql`1` })
+      .from(reportLines)
+      .innerJoin(seriesReports, eq(seriesReports.id, reportLines.reportId))
+      .where(
+        and(eq(seriesReports.seriesId, reports.seriesId), eq(reportLines.salesOwnerId, viewerId)),
+      ),
+  );
+}
+
 export async function listReportsFor(viewer: Viewer) {
   const rows = await db
     .select(coverColumns)
@@ -243,7 +296,7 @@ export async function ensureVisible(
     .where(
       viewer.role === "admin"
         ? eq(reports.id, reportId)
-        : and(eq(reports.id, reportId), ownsAnyLine(viewer.id)),
+        : and(eq(reports.id, reportId), ownsAnyLineInSeries(viewer.id)),
     )
     .limit(1);
 
@@ -293,6 +346,8 @@ async function findLineWithReportStatus(lineId: string) {
       id: reportLines.id,
       reportId: reportLines.reportId,
       reportStatus: reports.status,
+      /** 修正版で最後の 1 件を消させないために要ります。 */
+      reportVersion: reports.version,
       salesOwnerId: reportLines.salesOwnerId,
       status: reportLines.status,
     })
@@ -392,7 +447,7 @@ export async function updateReportLine(
   return Result.ok({ ok: true as const });
 }
 
-/** 明細の削除。下書き中だけです。 */
+/** 明細の削除。下書き中だけで、かつ修正版を 0 件にはできません。 */
 export async function removeReportLine(lineId: string): Promise<Result<{ ok: true }, ReportError>> {
   const line = await findLineWithReportStatus(lineId);
 
@@ -400,7 +455,16 @@ export async function removeReportLine(lineId: string): Promise<Result<{ ok: tru
     return Result.err(new ReportNotFound({ message: "明細が見つかりません", reportId: lineId }));
   }
 
-  const removed = removeLineTransition(line);
+  const [siblings] = await db
+    .select({ lineCount })
+    .from(reportLines)
+    .where(eq(reportLines.reportId, line.reportId));
+
+  const removed = removeLineTransition({
+    lineCount: siblings?.lineCount ?? 0,
+    reportStatus: line.reportStatus,
+    version: line.reportVersion,
+  });
 
   if (Result.isError(removed)) {
     return removed;

@@ -24,6 +24,7 @@ function reportWith(progress: ReportDetail["progress"]): ReportDetail {
     targetMonth: "2026-08",
     totalAmount: "1000.00",
     version: 1,
+    versions: [{ id: "11111111-1111-1111-1111-111111111111", status: "in_review", version: 1 }],
   };
 }
 

@@ -127,9 +127,9 @@ describe("管理者の操作", () => {
     // @see docs/adr/0012-confirm-preconditions.md
     await renderWithProviders(
       <ReportLineTable
-        canDelete={false}
         canEdit
         canReview={false}
+        deleteBlocker="確認依頼後は削除できません"
         lines={lines}
         salesUsers={salesUsers}
         viewerId="admin"
@@ -144,9 +144,9 @@ describe("管理者の操作", () => {
   it("下書き中は削除できる", async () => {
     await renderWithProviders(
       <ReportLineTable
-        canDelete
         canEdit
         canReview={false}
+        deleteBlocker={null}
         lines={lines}
         salesUsers={salesUsers}
         viewerId="admin"
