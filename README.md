@@ -17,21 +17,21 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 選定理由の詳細と却下した代案は、各 ADR をご参照ください。
 
-| 領域 | 採用 | なぜこの技術か |
-| --- | --- | --- |
-| フレームワーク | TanStack Start + React 19 | 確定後の不変と権限判定をサーバー側（loader）に置きます。CSR だけだと不変がブラウザに落ちます。ルートの型はその従です → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
-| ツールチェーン | Vite+ (`vp`) | 採点者と自分の手順を 1 つの CLI にします。 → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
-| API | ElysiaJS | 型安全な RPC と API 仕様を出せます。Start の Server Function と切り離し、API とクライアントを分けて管理・調査コストを下げます → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md) |
-| 型共有 / 仕様書 | Eden Treaty + `@elysia/openapi` | Eden は生成忘れのない型です。OpenAPI はリポジトリの外（採点者）向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md) |
-| スキーマ | Valibot | サーバー・フォーム・OpenAPI の定義を 1 箇所にします。二重定義は業務ルールの穴になります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md) |
-| フォーム | Formisch (`@formisch/react`) | アダプタ無しでスキーマからフォームを作ります。スキーマを見れば UI が分かり、認知コストを下げつつ SSOT を維持できます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md) |
-| エラー | better-result | 記述と品質を一定のルールで揃えます。遷移拒否を型に載せ、想定内の失敗とバグを分けます。多段チェックの合成と、HTTP 越えでも同じタグを復元できます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md) |
-| UI コンポーネント | Mantine | 業務 UI の幅が最も大きいと判断しています。今のテーブル／モーダル／日付を自作せず、版管理に時間を使います。帳票や通知を足す将来にも足ります → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md) |
-| レイアウト | Tailwind CSS 4 | レイアウトを短く当てられます。Mantine の見た目は props に任せ、className で上書きしません → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md) |
-| ORM | Drizzle | `drizzle-valibot` で Valibot 一本にできます。生成 SQL に近く、制約・トリガを隠しません → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md) |
-| DB | PostgreSQL | 確定後の書き換え禁止や「進行中の版は系列に 1 つ」を、部分ユニークやトリガで DB に書きます → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md) |
-| 実行基盤 | Docker | ライブラリではなく、その Postgres を採点者が再現するための手段です。`clone → 動く` の減点軸だと分かったうえで払うコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md) |
-| 認証 | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。評価軸はサーバー側の権限判定であり、認証基盤を足しても堅牢さは上がりません。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md) |
+| 領域              | 採用                             | なぜこの技術か                                                                                                                                                                                                     |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| フレームワーク    | TanStack Start + React 19        | 確定後の不変と権限判定をサーバー側（loader）に置きます。CSR だけだと不変がブラウザに落ちます。ルートの型はその従です → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                   |
+| ツールチェーン    | Vite+ (`vp`)                     | 採点者と自分の手順を 1 つの CLI にします。 → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                                                                             |
+| API               | ElysiaJS                         | 型安全な RPC と API 仕様を出せます。Start の Server Function と切り離し、API とクライアントを分けて管理・調査コストを下げます → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)                  |
+| 型共有 / 仕様書   | Eden Treaty + `@elysia/openapi`  | Eden は生成忘れのない型です。OpenAPI はリポジトリの外（採点者）向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                                                              |
+| スキーマ          | Valibot                          | サーバー・フォーム・OpenAPI の定義を 1 箇所にします。二重定義は業務ルールの穴になります → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                                              |
+| フォーム          | Formisch (`@formisch/react`)     | アダプタ無しでスキーマからフォームを作ります。スキーマを見れば UI が分かり、認知コストを下げつつ SSOT を維持できます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                 |
+| エラー            | better-result                    | 記述と品質を一定のルールで揃えます。遷移拒否を型に載せ、想定内の失敗とバグを分けます。多段チェックの合成と、HTTP 越えでも同じタグを復元できます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md) |
+| UI コンポーネント | Mantine                          | 業務 UI の幅が最も大きいと判断しています。今のテーブル／モーダル／日付を自作せず、版管理に時間を使います。帳票や通知を足す将来にも足ります → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)             |
+| レイアウト        | Tailwind CSS 4                   | レイアウトを短く当てられます。Mantine の見た目は props に任せ、className で上書きしません → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                              |
+| ORM               | Drizzle                          | `drizzle-valibot` で Valibot 一本にできます。生成 SQL に近く、制約・トリガを隠しません → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                               |
+| DB                | PostgreSQL                       | 確定後の書き換え禁止や「進行中の版は系列に 1 つ」を、部分ユニークやトリガで DB に書きます → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                            |
+| 実行基盤          | Docker                           | ライブラリではなく、その Postgres を採点者が再現するための手段です。`clone → 動く` の減点軸だと分かったうえで払うコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                          |
+| 認証              | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。評価軸はサーバー側の権限判定であり、認証基盤を足しても堅牢さは上がりません。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)                                    |
 
 **Mantine + Tailwind はオーバースペックでは？** デザインシステムを二枚持っているのではなく、役割を分けています。Mantine は今の業務 UI の幅を自作せずに埋めるためで、その時間を版管理の深掘りに使います。Tailwind は Mantine が持たないラッパーのレイアウト専用です。将来の拡張性は、今の幅を自作しないことの次に来る利点です。詳細は [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md) をご参照ください。
 
@@ -45,9 +45,9 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 業務フローの表現とは層が違うため、上の選定テーブルには混ぜていません。品質ゲートとして入れています。
 
-| ツール | 用途 |
-| --- | --- |
-| fallow | 未使用ファイル・依存・エクスポートの検出（`vp run fallow`） |
+| ツール       | 用途                                                                      |
+| ------------ | ------------------------------------------------------------------------- |
+| fallow       | 未使用ファイル・依存・エクスポートの検出（`vp run fallow`）               |
 | react-doctor | React 向けの健全性チェック（`vp run doctor`）。編集時のフックでも動きます |
 
 ## AI ツールの利用
@@ -117,13 +117,13 @@ vp dev
 
 ## コマンド
 
-| コマンド | 用途 |
-| --- | --- |
-| `vp dev` | 開発サーバー（HMR） |
-| `vp build` | プロダクションビルド |
-| `vp check` | format + lint + typecheck（`--fix` で自動修正） |
-| `vp test` | テスト |
-| `vp run fallow` | 未使用ファイル・依存・エクスポートの検出 |
-| `vp run doctor` | React 向けの健全性チェック |
+| コマンド        | 用途                                            |
+| --------------- | ----------------------------------------------- |
+| `vp dev`        | 開発サーバー（HMR）                             |
+| `vp build`      | プロダクションビルド                            |
+| `vp check`      | format + lint + typecheck（`--fix` で自動修正） |
+| `vp test`       | テスト                                          |
+| `vp run fallow` | 未使用ファイル・依存・エクスポートの検出        |
+| `vp run doctor` | React 向けの健全性チェック                      |
 
 `pnpm` / `npm` は直接使いません。依存の追加も `vp add` を通してください（[AGENTS.md](AGENTS.md)）。
