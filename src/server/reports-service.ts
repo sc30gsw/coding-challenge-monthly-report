@@ -3,6 +3,7 @@ import { and, desc, eq, exists, sql } from "drizzle-orm";
 
 import { db } from "~/db/client";
 import { clients, reportLines, reports, users } from "~/db/schema";
+import { confirmReport as confirmReportTransition } from "~/features/reports/domain/confirmation";
 import {
   ClientNotFound,
   type ReportError,
@@ -219,19 +220,47 @@ export async function getReportDetailFor(
   viewer: Viewer,
   reportId: string,
 ): Promise<Result<ReportDetail, ReportError>> {
-  if (viewer.role === "sales") {
-    const [visible] = await db
-      .select({ id: reports.id })
-      .from(reports)
-      .where(and(eq(reports.id, reportId), ownsAnyLine(viewer.id)))
-      .limit(1);
+  const visible = await ensureVisible(viewer, reportId);
 
-    if (!visible) {
-      return Result.err(new ReportNotVisible({ message: "この報告書は担当外です", reportId }));
-    }
+  if (Result.isError(visible)) {
+    return visible;
   }
 
   return await getReportDetail(reportId);
+}
+
+/**
+ * その人がこの報告書を見てよいかを判定します。コメントも同じ境界を使うので、
+ * 判定を 2 箇所に書かないよう外に出しています。
+ */
+export async function ensureVisible(
+  viewer: Viewer,
+  reportId: string,
+): Promise<Result<true, ReportError>> {
+  const [found] = await db
+    .select({ id: reports.id })
+    .from(reports)
+    .where(
+      viewer.role === "admin"
+        ? eq(reports.id, reportId)
+        : and(eq(reports.id, reportId), ownsAnyLine(viewer.id)),
+    )
+    .limit(1);
+
+  if (found) {
+    return Result.ok(true as const);
+  }
+
+  // 担当外と存在しないを区別します。営業にとって担当外の報告書は、存在自体は事実です。
+  const [exists] = await db
+    .select({ id: reports.id })
+    .from(reports)
+    .where(eq(reports.id, reportId))
+    .limit(1);
+
+  return exists
+    ? Result.err(new ReportNotVisible({ message: "この報告書は担当外です", reportId }))
+    : Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
 }
 
 /** 確認依頼。可否の判断はドメインの純粋関数が持ち、ここは永続化だけを行います。 */
@@ -380,4 +409,48 @@ export async function removeReportLine(lineId: string): Promise<Result<{ ok: tru
   await db.delete(reportLines).where(eq(reportLines.id, lineId));
 
   return Result.ok({ ok: true as const });
+}
+
+/**
+ * 確定。可否の判断はドメインの純粋関数が持ち、ここは明細を集めて渡し、結果を永続化します。
+ *
+ * 確定後は DB のトリガが書き込みを拒みます。アプリ層のこの関数が唯一の入口ですが、
+ * 唯一の防御ではありません。
+ * @see docs/adr/0008-immutability-enforced-in-two-layers.md
+ */
+export async function confirmReport(reportId: string): Promise<Result<ReportSummary, ReportError>> {
+  const summary = await findSummary(reportId);
+
+  if (!summary) {
+    return Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
+  }
+
+  const lines = await db
+    .select({ status: reportLines.status })
+    .from(reportLines)
+    .where(eq(reportLines.reportId, reportId));
+
+  const confirmed = confirmReportTransition({
+    progress: reviewProgress(lines),
+    status: summary.status,
+  });
+
+  if (Result.isError(confirmed)) {
+    return confirmed;
+  }
+
+  await db
+    .update(reports)
+    .set({
+      confirmedAt: confirmed.value.confirmedAt,
+      status: confirmed.value.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(reports.id, reportId));
+
+  const updated = await findSummary(reportId);
+
+  return updated
+    ? Result.ok(updated)
+    : Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
 }

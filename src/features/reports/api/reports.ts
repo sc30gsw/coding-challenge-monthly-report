@@ -53,3 +53,7 @@ export async function updateReportLine(lineId: string, input: CreateReportLineIn
 export async function removeReportLine(lineId: string) {
   return toResult(await getApi().lines({ lineId }).delete());
 }
+
+export async function confirmReport(reportId: string) {
+  return toResult(await getApi().reports({ reportId }).confirm.post());
+}

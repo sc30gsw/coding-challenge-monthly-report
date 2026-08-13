@@ -3,8 +3,11 @@ import { Link, createFileRoute, notFound, redirect, useRouter } from "@tanstack/
 import { Result } from "better-result";
 
 import { fetchSelectableUsers } from "~/features/auth/api/session";
+import { fetchComments } from "~/features/comments/api/comments";
+import { CommentThread } from "~/features/comments/components/comment-thread";
 import { fetchReport, requestReview } from "~/features/reports/api/reports";
 import { AddReportLineForm } from "~/features/reports/components/add-report-line-form";
+import { ConfirmPanel } from "~/features/reports/components/confirm-panel";
 import { ReportLineTable } from "~/features/reports/components/report-line-table";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
 import { ReviewProgressSummary } from "~/features/reports/components/review-progress-summary";
@@ -21,7 +24,10 @@ export const Route = createFileRoute("/reports/$reportId")({
   },
   component: ReportDetailPage,
   loader: async ({ context, params }) => {
-    const report = await fetchReport(params.reportId);
+    const [report, comments] = await Promise.all([
+      fetchReport(params.reportId),
+      fetchComments(params.reportId),
+    ]);
 
     // 担当営業の選択肢は明細を足すときにしか要らないので、管理者のときだけ読みます。
     const users = context.user?.role === "admin" ? await fetchSelectableUsers() : null;
@@ -32,6 +38,7 @@ export const Route = createFileRoute("/reports/$reportId")({
     }
 
     return {
+      comments: orThrow(comments),
       report: report.value,
       salesUsers: users ? orThrow(users).filter((user) => user.role === "sales") : [],
     };
@@ -41,7 +48,7 @@ export const Route = createFileRoute("/reports/$reportId")({
 const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" });
 
 function ReportDetailPage() {
-  const { report, salesUsers } = Route.useLoaderData();
+  const { comments, report, salesUsers } = Route.useLoaderData();
   const { user } = Route.useRouteContext();
   const isAdmin = user.role === "admin";
 
@@ -115,6 +122,10 @@ function ReportDetailPage() {
         ) : null}
 
         {isAdmin && report.status === "draft" ? <RequestReviewPanel report={report} /> : null}
+
+        {isAdmin && report.status === "in_review" ? <ConfirmPanel report={report} /> : null}
+
+        <CommentThread comments={comments} lines={report.lines} reportId={report.id} />
       </Stack>
     </main>
   );

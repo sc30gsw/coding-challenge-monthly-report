@@ -623,3 +623,122 @@ describe("明細のない報告書", () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe("確定", () => {
+  async function fullyApproved() {
+    const report = await createDraft();
+
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "50000", projectName: "確定する案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+    await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    const detail = await call(`/reports/${report.id}`, { cookie: admin });
+    const [line] = detail.json<ReportDetail>().lines;
+
+    await call(`/lines/${line?.id}/approve`, { cookie: sales, method: "POST" });
+
+    return { lineId: line?.id ?? "", reportId: report.id };
+  }
+
+  it("全明細が承認済みなら確定できる", async () => {
+    const { reportId } = await fullyApproved();
+
+    const res = await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(200);
+    expect(res.json<ReportSummary>().status).toBe("confirmed");
+  });
+
+  it("未承認が残っていると確定できず、残数が理由に載る", async () => {
+    const { reportId } = await fullyApproved();
+
+    await call(`/reports/${reportId}/lines`, {
+      body: { amount: "1000", projectName: "あとから追加", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const res = await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(409);
+    expect(res.json<{ tag: string }>().tag).toBe("LinesNotFullyApproved");
+  });
+
+  it("明細が 0 件の報告書は確定できない", async () => {
+    // 「すべて承認済み」は空集合で真になるので、件数を別に見ないと通ります。
+    const report = await createDraft();
+
+    const res = await call(`/reports/${report.id}/confirm`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(409);
+  });
+
+  it("下書きのままでは確定できない", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const res = await call(`/reports/${report.id}/confirm`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(409);
+    expect(res.json<{ tag: string }>().tag).toBe("TransitionNotAllowed");
+  });
+
+  it("営業は確定できない", async () => {
+    const { reportId } = await fullyApproved();
+
+    const res = await call(`/reports/${reportId}/confirm`, { cookie: sales, method: "POST" });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("確定は不可逆で、もう一度確定できない", async () => {
+    const { reportId } = await fullyApproved();
+    await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    const res = await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(409);
+  });
+
+  it("確定後は明細を編集できない", async () => {
+    const { lineId, reportId } = await fullyApproved();
+    await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    const res = await call(`/lines/${lineId}`, {
+      body: { amount: "1", projectName: "書き換え", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+
+    expect(res.status).toBe(409);
+  });
+
+  it("確定後は明細を足せない", async () => {
+    const { reportId } = await fullyApproved();
+    await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    const res = await call(`/reports/${reportId}/lines`, {
+      body: { amount: "1", projectName: "後から追加", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    expect(res.status).toBe(409);
+  });
+
+  it("確定済みの報告書に確定日時が入る", async () => {
+    const { reportId } = await fullyApproved();
+    await call(`/reports/${reportId}/confirm`, { cookie: admin, method: "POST" });
+
+    const detail = await call(`/reports/${reportId}`, { cookie: admin });
+
+    expect(detail.json<ReportDetail>().status).toBe("confirmed");
+  });
+});

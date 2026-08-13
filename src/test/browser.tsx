@@ -38,6 +38,18 @@ if (typeof window !== "undefined" && typeof window.ResizeObserver !== "function"
   };
 }
 
+if (typeof document !== "undefined" && !document.fonts) {
+  // Textarea の autosize が、フォント読み込み後に高さを測り直すために購読します。
+  // jsdom は FontFaceSet を持たないので、何も起きないイベントターゲットを置きます。
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: {
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    },
+  });
+}
+
 if (typeof Element !== "undefined" && typeof Element.prototype.scrollIntoView !== "function") {
   // Select が候補までスクロールするのに使います。jsdom には無いので何もしない実装で足ります。
   Element.prototype.scrollIntoView = () => {};

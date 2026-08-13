@@ -1,8 +1,7 @@
-import { matchError, Result } from "better-result";
+import { Result } from "better-result";
 import { Elysia } from "elysia";
 import * as v from "valibot";
 
-import type { ReportError } from "~/features/reports/domain/errors";
 import {
   ClientSchema,
   CreateReportInputSchema,
@@ -12,6 +11,7 @@ import {
   RequestChangesInputSchema,
 } from "~/features/reports/schemas/report-schema";
 import { auth } from "~/server/auth";
+import { failureResponses, toHttpFailure } from "~/server/http-failure";
 import * as service from "~/server/reports-service";
 
 /**
@@ -22,36 +22,6 @@ import * as service from "~/server/reports-service";
  * クラスインスタンスは境界を越えられないためです。
  * @see docs/adr/0005-better-result-for-expected-failures.md
  */
-
-/**
- * 失敗の種類ごとの見せ方です。`matchError` は網羅を要求するので、
- * 状態遷移の拒否が増えたときに、ここで型エラーとして気づけます。
- *
- * - 404: 存在しない
- * - 403: 存在するが、その人には見せない
- * - 409: 存在も権限もあるが、いまの状態ではできない
- */
-function toHttpFailure(error: ReportError) {
-  const body = { message: error.message, tag: error._tag };
-
-  return matchError(error, {
-    ClientNotFound: () => ({ body, status: 404 as const }),
-    NotLineOwner: () => ({ body, status: 403 as const }),
-    ReportHasNoLines: () => ({ body, status: 409 as const }),
-    ReportNotFound: () => ({ body, status: 404 as const }),
-    ReportNotVisible: () => ({ body, status: 403 as const }),
-    TransitionNotAllowed: () => ({ body, status: 409 as const }),
-  });
-}
-
-const ErrorBodySchema = v.object({ message: v.string(), tag: v.string() });
-
-/** 失敗しうるルートは、この 3 つのステータスを宣言しておきます。 */
-const failureResponses = {
-  403: ErrorBodySchema,
-  404: ErrorBodySchema,
-  409: ErrorBodySchema,
-};
 
 export const reportRoutes = new Elysia({ name: "reports" })
   .use(auth)
@@ -241,6 +211,30 @@ export const reportRoutes = new Elysia({ name: "reports" })
       },
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
       session: true,
+    },
+  )
+  .post(
+    "/reports/:reportId/confirm",
+    async ({ params, status }) => {
+      const confirmed = await service.confirmReport(params.reportId);
+
+      if (Result.isError(confirmed)) {
+        const failure = toHttpFailure(confirmed.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return confirmed.value;
+    },
+    {
+      admin: true,
+      detail: {
+        description:
+          "報告書を確定します。明細が 1 件以上あり、そのすべてが承認済みのときだけです。確定後の内容はアプリ層と DB トリガの二重で変更を拒否します。",
+        summary: "確定",
+        tags: ["Reports"],
+      },
+      response: { 200: ReportSummarySchema, ...failureResponses },
     },
   )
   .post(

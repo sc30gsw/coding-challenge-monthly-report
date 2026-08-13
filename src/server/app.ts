@@ -6,6 +6,7 @@ import * as v from "valibot";
 
 import { db } from "~/db/client";
 import { auth, SESSION_COOKIE } from "~/server/auth";
+import { commentRoutes } from "~/server/comments";
 import { env } from "~/server/env";
 import { reportRoutes } from "~/server/reports";
 
@@ -53,6 +54,7 @@ export const app = new Elysia({
   })
   .use(auth)
   .use(reportRoutes)
+  .use(commentRoutes)
   .get(
     "/health",
     async () => {

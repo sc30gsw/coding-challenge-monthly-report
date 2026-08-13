@@ -63,8 +63,31 @@ export class ReportHasNoLines extends TaggedError("ReportHasNoLines")<{
   reportId: string;
 }> {}
 
+/**
+ * 未承認または差し戻しの明細が残っている、という拒否です。
+ *
+ * UI はこのタグを見て確定ボタンを非活性にし、残り件数を出します。
+ * ただし表示は表示であって、拒否そのものはサーバーが行います。
+ * @see docs/adr/0012-confirm-preconditions.md
+ */
+export class LinesNotFullyApproved extends TaggedError("LinesNotFullyApproved")<{
+  approved: number;
+  changesRequested: number;
+  message: string;
+  pending: number;
+}> {}
+
+/** 指定された明細が、その報告書のものではない、という拒否です。 */
+export class LineNotInReport extends TaggedError("LineNotInReport")<{
+  lineId: string;
+  message: string;
+  reportId: string;
+}> {}
+
 export type ReportError =
   | ClientNotFound
+  | LineNotInReport
+  | LinesNotFullyApproved
   | NotLineOwner
   | ReportHasNoLines
   | ReportNotFound
