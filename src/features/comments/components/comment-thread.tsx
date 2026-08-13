@@ -75,8 +75,6 @@ export function CommentThread({ comments, lines, reportId, viewer }: CommentThre
       const posted = await postComment(reportId, input);
 
       if (Result.isError(posted)) {
-        // transition が終わると仮の行は消えます。残したままだと、書いたつもりが
-        // 相手に届いていない状態になります。
         setFailure("コメントを投稿できませんでした。時間をおいて試してください。");
 
         return;
