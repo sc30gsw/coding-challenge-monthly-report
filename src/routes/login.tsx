@@ -3,12 +3,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 
 import { fetchSelectableUsers, login } from "~/features/auth/api/session";
 import { orThrow } from "~/lib/api/result";
-import type { SessionUser } from "~/lib/session-schema";
-
-const ROLE_LABELS = {
-  admin: "管理者",
-  sales: "営業",
-} as const satisfies Record<SessionUser["role"], string>;
+import { ROLE_LABELS } from "~/lib/role-labels";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: ({ context }) => {

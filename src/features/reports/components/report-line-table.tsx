@@ -4,6 +4,7 @@ import { LineAdminActions } from "~/features/reports/components/line-admin-actio
 import { LineReviewActions } from "~/features/reports/components/line-review-actions";
 import { REPORT_LINE_STATUS_LABELS } from "~/features/reports/domain/status-labels";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
+import { yen } from "~/lib/currency";
 import type { SessionUser } from "~/lib/session-schema";
 
 type ReportLineTableProps = {
@@ -22,8 +23,6 @@ type ReportLineTableProps = {
 
 /** 既定値をレンダーのたびに作らないよう、モジュール定数にします。 */
 const NO_SALES_USERS: SessionUser[] = [];
-
-const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" });
 
 /**
  * 明細の一覧です。
@@ -53,7 +52,7 @@ export function ReportLineTable({
           <Table.Th>案件名</Table.Th>
           <Table.Th>担当営業</Table.Th>
           <Table.Th>確認状況</Table.Th>
-          <Table.Th className="text-right">金額</Table.Th>
+          <Table.Th ta="right">金額</Table.Th>
           <Table.Th />
         </Table.Tr>
       </Table.Thead>
@@ -92,7 +91,7 @@ export function ReportLineTable({
                 ) : null}
               </Stack>
             </Table.Td>
-            <Table.Td className="text-right tabular-nums">
+            <Table.Td className="tabular-nums" ta="right">
               {yen.format(Number(line.amount))}
             </Table.Td>
             <Table.Td>

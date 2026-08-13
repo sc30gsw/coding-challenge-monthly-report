@@ -1,10 +1,12 @@
 import { Card, Group, Stack, Table, Text, Title } from "@mantine/core";
-import { Link, createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+import { ReportLink } from "~/components/report-link";
 import { fetchClients, fetchReports } from "~/features/reports/api/reports";
 import { CreateReportForm } from "~/features/reports/components/create-report-form";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
 import { orThrow } from "~/lib/api/result";
+import { yen } from "~/lib/currency";
 
 export const Route = createFileRoute("/reports/")({
   beforeLoad: ({ context }) => {
@@ -25,8 +27,6 @@ export const Route = createFileRoute("/reports/")({
     return { clients, reports };
   },
 });
-
-const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" });
 
 function ReportsPage() {
   const { clients, reports } = Route.useLoaderData();
@@ -65,22 +65,14 @@ function ReportsPage() {
                 <Table.Th>対象月</Table.Th>
                 <Table.Th>状態</Table.Th>
                 <Table.Th>明細</Table.Th>
-                <Table.Th className="text-right">金額合計</Table.Th>
+                <Table.Th ta="right">金額合計</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {reports.map((report) => (
                 <Table.Tr key={report.id}>
                   <Table.Td>
-                    {/* Mantine の Anchor に component={Link} を渡すと Link の型が落ち、
-                        params が検査されなくなるため、Link をそのまま使います。 */}
-                    <Link
-                      className="text-blue-700 underline underline-offset-2"
-                      params={{ reportId: report.id }}
-                      to="/reports/$reportId"
-                    >
-                      {report.clientName}
-                    </Link>
+                    <ReportLink reportId={report.id}>{report.clientName}</ReportLink>
                   </Table.Td>
                   <Table.Td>{report.targetMonth}</Table.Td>
                   <Table.Td>
@@ -90,7 +82,7 @@ function ReportsPage() {
                     </Group>
                   </Table.Td>
                   <Table.Td>{report.lineCount} 件</Table.Td>
-                  <Table.Td className="text-right tabular-nums">
+                  <Table.Td className="tabular-nums" ta="right">
                     {yen.format(Number(report.totalAmount))}
                   </Table.Td>
                 </Table.Tr>

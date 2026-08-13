@@ -1,6 +1,6 @@
 import { Card, Group, Text } from "@mantine/core";
-import { Link } from "@tanstack/react-router";
 
+import { ReportLink } from "~/components/report-link";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
 import type { SeriesVersion } from "~/features/reports/schemas/report-schema";
 
@@ -35,15 +35,9 @@ export function VersionHistory({ currentId, versions }: VersionHistoryProps) {
                 第 {entry.version} 版（表示中）
               </Text>
             ) : (
-              // Mantine の Anchor に component={Link} を渡すと Link の型が落ち、
-              // params が検査されなくなるため、Link をそのまま使います。
-              <Link
-                className="text-sm text-blue-700 underline underline-offset-2"
-                params={{ reportId: entry.id }}
-                to="/reports/$reportId"
-              >
+              <ReportLink className="text-sm" reportId={entry.id}>
                 第 {entry.version} 版
-              </Link>
+              </ReportLink>
             )}
             <ReportStatusBadge status={entry.status} />
           </Group>

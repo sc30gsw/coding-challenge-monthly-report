@@ -9,6 +9,7 @@ import { postComment } from "~/features/comments/api/comments";
 import type { Comment } from "~/features/comments/schemas/comment-schema";
 import { CreateCommentInputSchema } from "~/features/comments/schemas/comment-schema";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
+import { ROLE_LABELS } from "~/lib/role-labels";
 import type { SessionUser } from "~/lib/session-schema";
 
 type CommentThreadProps = {
@@ -18,11 +19,6 @@ type CommentThreadProps = {
   /** 楽観的に描く 1 件の投稿者。サーバーの応答を待たずに名前とロールを出すために要ります。 */
   viewer: SessionUser;
 };
-
-const ROLE_LABELS = {
-  admin: "管理者",
-  sales: "営業",
-} as const satisfies Record<Comment["author"]["role"], string>;
 
 /**
  * タイムゾーンを明示します。省略するとサーバーとブラウザで異なる可能性があり、

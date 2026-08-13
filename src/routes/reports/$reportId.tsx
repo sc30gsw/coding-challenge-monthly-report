@@ -16,6 +16,7 @@ import { VersionHistory } from "~/features/reports/components/version-history";
 import { deletionBlocker } from "~/features/reports/domain/line-editing";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
 import { orThrow } from "~/lib/api/result";
+import { yen } from "~/lib/currency";
 
 export const Route = createFileRoute("/reports/$reportId")({
   beforeLoad: ({ context }) => {
@@ -47,8 +48,6 @@ export const Route = createFileRoute("/reports/$reportId")({
     };
   },
 });
-
-const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" });
 
 function ReportDetailPage() {
   const { comments, report, salesUsers } = Route.useLoaderData();

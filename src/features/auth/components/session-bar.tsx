@@ -2,12 +2,8 @@ import { Badge, Button, Group, Text } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
 
 import { logout } from "~/features/auth/api/session";
+import { ROLE_LABELS } from "~/lib/role-labels";
 import type { SessionUser } from "~/lib/session-schema";
-
-const ROLE_LABELS = {
-  admin: "管理者",
-  sales: "営業",
-} as const satisfies Record<SessionUser["role"], string>;
 
 /**
  * いま誰としてアプリを見ているかを常に出します。
