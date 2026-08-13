@@ -28,7 +28,7 @@ README では技術の選定理由と、設計の要点だけを記載します�
 | エラー            | better-result                    | 記述と品質を一定のルールで揃えます。遷移拒否を型に載せ、想定内の失敗とバグを分けます。多段チェックの合成と、HTTP 越えでも同じタグを復元できます → [ADR-0005](docs/adr/0005-better-result-for-expected-failures.md) |
 | UI コンポーネント | Mantine                          | 業務 UI の幅が最も大きいと判断しています。今のテーブル／モーダル／日付を自作せず、版管理に時間を使います。帳票や通知を足す将来にも足ります → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)             |
 | レイアウト        | Tailwind CSS 4                   | レイアウトを短く当てられます。Mantine の見た目は props に任せ、className で上書きしません → [ADR-0003](docs/adr/0003-mantine-with-tailwind-preset.md)                                                              |
-| ORM               | Drizzle                          | `drizzle-valibot` で Valibot 一本にできます。生成 SQL に近く、制約・トリガを隠しません → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                               |
+| ORM               | Drizzle                          | 生成 SQL に近く、制約・トリガを ORM の裏に隠しません。スキーマ定義を読めば DB に何が効いているか分かります → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                           |
 | DB                | PostgreSQL                       | 確定後の書き換え禁止や「進行中の版は系列に 1 つ」を、部分ユニークやトリガで DB に書きます → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                                                            |
 | 実行基盤          | Docker                           | ライブラリではなく、その Postgres を採点者が再現するための手段です。`clone → 動く` の減点軸だと分かったうえで払うコストです → [ADR-0002](docs/adr/0002-postgres-on-docker-over-sqlite.md)                          |
 | 認証              | 署名付き Cookie のダミーログイン | 要件が許容する簡略化です。評価軸はサーバー側の権限判定であり、認証基盤を足しても堅牢さは上がりません。署名は外しません → [ADR-0015](docs/adr/0015-signed-cookie-dummy-login.md)                                    |
@@ -82,7 +82,7 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 ## セットアップ
 
-> seed（各状態のサンプルデータ）はまだ入っていません。`vp run setup` は警告を出して seed だけを飛ばします。
+> seed で入るのは、いまのところログイン用のユーザーと取引先マスタだけです。各状態のサンプル報告書は issue #11 で足します。
 
 ### Vite+（`vp`）のインストール
 
@@ -156,6 +156,7 @@ Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABAS
 | `vp run db:down`     | PostgreSQL の停止                                 |
 | `vp run db:generate` | スキーマ定義からマイグレーションを生成            |
 | `vp run db:migrate`  | マイグレーションの適用のみ                        |
+| `vp run seed`        | seed データの投入のみ（何度実行しても同じ結果）   |
 | `vp run fallow`      | 未使用ファイル・依存・エクスポートの検出          |
 | `vp run doctor`      | React 向けの健全性チェック                        |
 

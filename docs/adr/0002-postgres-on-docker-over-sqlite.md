@@ -8,7 +8,9 @@
 
 ## なぜ Drizzle か
 
-`drizzle-valibot` で検証スキーマを Valibot 一本にできるためです（[0013](./0013-eden-treaty-with-openapi.md)）。公式が推す `drizzle-typebox` だと TypeBox が二重になり、フォーム側の Valibot と検証規則が割れます。あわせて、生成 SQL に近く制約・トリガを ORM の裏に隠さない点も評価しました。
+生成 SQL に近く、制約・トリガを ORM の裏に隠さないためです。深掘りが「業務ルールをデータ層まで下ろすこと」である以上、スキーマ定義を読めば DB に何が効いているかが分かる状態を優先しました。
+
+なお当初は `drizzle-valibot` でテーブル定義から検証スキーマを導出するつもりでしたが、実装してみて使わないことが判明しました（[0013](./0013-eden-treaty-with-openapi.md)）。また、公式が推す `drizzle-typebox` を避けたのは、TypeBox が二重になりフォーム側の Valibot と検証規則が割れるためです。
 
 ## 採らなかった案
 

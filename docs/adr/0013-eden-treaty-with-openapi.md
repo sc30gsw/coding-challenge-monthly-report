@@ -18,6 +18,6 @@ Elysia の公式レシピは Drizzle スキーマを `drizzle-typebox` で検証
 
 ## 影響
 
-- `@valibot/to-json-schema` と `drizzle-valibot` が追加の依存になります。
+- 追加の依存は `@valibot/to-json-schema` だけです。
 - Valibot スキーマは `src/features/*/schemas/` に置き、サーバーのルート定義とフォームの両方から import します。定義箇所は 1 つです。
 - Eden の型は `typeof app` に依存するので、Elysia のルート定義に明示的な戻り値型を書きすぎると型が痩せます。ハンドラの戻り値は推論に任せます。
