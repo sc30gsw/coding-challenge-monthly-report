@@ -1,15 +1,26 @@
 import { Badge, Group, Stack, Table, Text } from "@mantine/core";
 
+import type { SessionUser } from "~/features/auth/schemas/session-schema";
+import { LineAdminActions } from "~/features/reports/components/line-admin-actions";
 import { LineReviewActions } from "~/features/reports/components/line-review-actions";
 import type { ReportDetail, ReportLine } from "~/features/reports/schemas/report-schema";
 
 type ReportLineTableProps = {
+  /** 明細を消せるかどうか。下書き中だけです。 */
+  canDelete?: boolean;
+  /** 明細を書き換えられるかどうか。管理者で、報告書が下書きか確認中のときだけです。 */
+  canEdit?: boolean;
   /** 自分の担当行に確認の操作を出すかどうか。報告書が確認中で、見ている人が営業のときだけです。 */
   canReview: boolean;
   lines: ReportDetail["lines"];
+  /** 編集フォームの担当営業の選択肢。管理者のときだけ渡します。 */
+  salesUsers?: SessionUser[];
   /** いま見ている人。自分の担当行に印をつけるために使います。 */
   viewerId: string;
 };
+
+/** 既定値をレンダーのたびに作らないよう、モジュール定数にします。 */
+const NO_SALES_USERS: SessionUser[] = [];
 
 const LINE_STATUS_LABELS = {
   approved: "承認済み",
@@ -27,7 +38,14 @@ const yen = new Intl.NumberFormat("ja-JP", { currency: "JPY", style: "currency" 
  * 印が無いとどれを確認すべきかが読み取れません。
  * @see docs/adr/0010-sales-owner-lives-on-the-line.md
  */
-export function ReportLineTable({ canReview, lines, viewerId }: ReportLineTableProps) {
+export function ReportLineTable({
+  canDelete = false,
+  canEdit = false,
+  canReview,
+  lines,
+  salesUsers = NO_SALES_USERS,
+  viewerId,
+}: ReportLineTableProps) {
   if (lines.length === 0) {
     return (
       <Text c="dimmed" size="sm">
@@ -80,6 +98,9 @@ export function ReportLineTable({ canReview, lines, viewerId }: ReportLineTableP
             <Table.Td>
               {canReview && line.salesOwner.id === viewerId ? (
                 <LineReviewActions lineId={line.id} />
+              ) : null}
+              {canEdit ? (
+                <LineAdminActions canDelete={canDelete} line={line} salesUsers={salesUsers} />
               ) : null}
             </Table.Td>
           </Table.Tr>

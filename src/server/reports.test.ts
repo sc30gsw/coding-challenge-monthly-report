@@ -458,3 +458,129 @@ describe("明細の承認と差し戻し", () => {
     expect(res.json<{ tag: string }>().tag).toBe("TransitionNotAllowed");
   });
 });
+
+describe("明細の編集と削除", () => {
+  async function approvedLineInReview() {
+    const report = await createDraft();
+
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "50000", projectName: "元の案件名", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+    await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    const before = await call(`/reports/${report.id}`, { cookie: admin });
+    const [line] = before.json<ReportDetail>().lines;
+
+    if (!line) {
+      throw new Error("fixture did not create a line");
+    }
+
+    await call(`/lines/${line.id}/approve`, { cookie: sales, method: "POST" });
+
+    return { line, reportId: report.id };
+  }
+
+  it("承認済みの明細を編集すると未確認に戻る", async () => {
+    // この課題で一番説明したい設計判断です。これが無いと
+    // 「営業が承認 → 管理者が金額を書き換え → 承認済みのまま確定」が通ります。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const { line, reportId } = await approvedLineInReview();
+
+    const res = await call(`/lines/${line.id}`, {
+      body: { amount: "500000", projectName: "元の案件名", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+
+    expect(res.status).toBe(200);
+
+    const after = await call(`/reports/${reportId}`, { cookie: admin });
+    const [updated] = after.json<ReportDetail>().lines;
+
+    expect(updated?.amount).toBe("500000.00");
+    expect(updated?.status).toBe("pending");
+  });
+
+  it("編集で未確認に戻ると、確定の条件も満たさなくなる", async () => {
+    const { line, reportId } = await approvedLineInReview();
+
+    const before = await call(`/reports/${reportId}`, { cookie: admin });
+
+    expect(before.json<ReportDetail>().progress.isFullyApproved).toBe(true);
+
+    await call(`/lines/${line.id}`, {
+      body: { amount: "500000", projectName: "元の案件名", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "PATCH",
+    });
+
+    const after = await call(`/reports/${reportId}`, { cookie: admin });
+    const { progress } = after.json<ReportDetail>();
+
+    expect(progress.isFullyApproved).toBe(false);
+    expect(progress.pending).toBe(1);
+  });
+
+  it("確認中でも明細を足せる。足した行は未確認", async () => {
+    const { reportId } = await approvedLineInReview();
+
+    const res = await call(`/reports/${reportId}/lines`, {
+      body: { amount: "1000", projectName: "あとから追加", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    expect(res.status).toBe(200);
+
+    const after = await call(`/reports/${reportId}`, { cookie: admin });
+    const { progress } = after.json<ReportDetail>();
+
+    expect(progress.total).toBe(2);
+    expect(progress.pending).toBe(1);
+    expect(progress.isFullyApproved).toBe(false);
+  });
+
+  it("下書き中は明細を削除できる", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "消す案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const before = await call(`/reports/${report.id}`, { cookie: admin });
+    const [line] = before.json<ReportDetail>().lines;
+
+    const res = await call(`/lines/${line?.id}`, { cookie: admin, method: "DELETE" });
+
+    expect(res.status).toBe(200);
+
+    const after = await call(`/reports/${report.id}`, { cookie: admin });
+
+    expect(after.json<ReportDetail>().lines).toHaveLength(0);
+  });
+
+  it("確認依頼後は API を直接叩いても削除できない", async () => {
+    // 差し戻された明細を消して指摘ごと無かったことにする経路を塞ぎます。
+    const { line } = await approvedLineInReview();
+
+    const res = await call(`/lines/${line.id}`, { cookie: admin, method: "DELETE" });
+
+    expect(res.status).toBe(409);
+    expect(res.json<{ tag: string }>().tag).toBe("TransitionNotAllowed");
+  });
+
+  it("営業は明細を編集できない", async () => {
+    const { line } = await approvedLineInReview();
+
+    const res = await call(`/lines/${line.id}`, {
+      body: { amount: "1", projectName: "勝手に編集", salesOwnerId: actors.sales.id },
+      cookie: sales,
+      method: "PATCH",
+    });
+
+    expect(res.status).toBe(403);
+  });
+});

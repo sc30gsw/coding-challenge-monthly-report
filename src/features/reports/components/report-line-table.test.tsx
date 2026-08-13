@@ -100,3 +100,56 @@ describe("確認の操作", () => {
     expect(screen.getByText("金額が請求書と一致しません")).toBeInTheDocument();
   });
 });
+
+describe("管理者の操作", () => {
+  const salesUsers = [
+    { id: MINE, name: "佐藤 花子", role: "sales" as const },
+    { id: THEIRS, name: "鈴木 一郎", role: "sales" as const },
+  ];
+
+  it("編集できる状況では、担当に関わらず全ての行に編集が出る", async () => {
+    await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: "編集" })).toHaveLength(2);
+  });
+
+  it("削除は下書き中だけ出る", async () => {
+    // 確認依頼後に消せると、差し戻された指摘ごと消して確定できてしまいます。
+    await renderWithProviders(
+      <ReportLineTable
+        canDelete={false}
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "削除" })).not.toBeInTheDocument();
+  });
+
+  it("編集フォームは、承認が取り直しになることを伝える", async () => {
+    const { user } = await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "編集" })[0] as HTMLElement);
+
+    expect(await screen.findByText(/確認状況は未確認に戻ります/)).toBeInTheDocument();
+  });
+});

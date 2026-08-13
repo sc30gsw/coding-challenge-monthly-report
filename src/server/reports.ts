@@ -145,6 +145,55 @@ export const reportRoutes = new Elysia({ name: "reports" })
       response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
     },
   )
+  .patch(
+    "/lines/:lineId",
+    async ({ body, params, status }) => {
+      const updated = await service.updateReportLine(params.lineId, body);
+
+      if (Result.isError(updated)) {
+        const failure = toHttpFailure(updated.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return updated.value;
+    },
+    {
+      admin: true,
+      body: CreateReportLineInputSchema,
+      detail: {
+        description:
+          "明細の内容を書き換えます。編集した行の確認状況は未確認に戻ります（承認はレビューした内容に対する意思表示のため）。",
+        summary: "明細の編集",
+        tags: ["Reports"],
+      },
+      response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
+    },
+  )
+  .delete(
+    "/lines/:lineId",
+    async ({ params, status }) => {
+      const removed = await service.removeReportLine(params.lineId);
+
+      if (Result.isError(removed)) {
+        const failure = toHttpFailure(removed.error);
+
+        return status(failure.status, failure.body);
+      }
+
+      return removed.value;
+    },
+    {
+      admin: true,
+      detail: {
+        description:
+          "明細を削除します。下書き中だけです。確認依頼後に許すと、差し戻された指摘を消して確定できてしまいます。",
+        summary: "明細の削除",
+        tags: ["Reports"],
+      },
+      response: { 200: v.object({ ok: v.literal(true) }), ...failureResponses },
+    },
+  )
   .post(
     "/lines/:lineId/approve",
     async ({ params, status, user }) => {

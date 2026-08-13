@@ -7,6 +7,7 @@ import { fetchReport, requestReview } from "~/features/reports/api/reports";
 import { AddReportLineForm } from "~/features/reports/components/add-report-line-form";
 import { ReportLineTable } from "~/features/reports/components/report-line-table";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
+import { ReviewProgressSummary } from "~/features/reports/components/review-progress-summary";
 import { orThrow } from "~/lib/api/result";
 
 export const Route = createFileRoute("/reports/$reportId")({
@@ -89,14 +90,19 @@ function ReportDetailPage() {
             明細
           </Text>
 
+          <ReviewProgressSummary progress={report.progress} />
+
           <ReportLineTable
+            canDelete={isAdmin && report.status === "draft"}
+            canEdit={isAdmin && (report.status === "draft" || report.status === "in_review")}
             canReview={!isAdmin && report.status === "in_review"}
             lines={report.lines}
+            salesUsers={salesUsers}
             viewerId={user.id}
           />
         </Stack>
 
-        {isAdmin && report.status === "draft" ? (
+        {isAdmin && (report.status === "draft" || report.status === "in_review") ? (
           <Card padding="md" radius="md" withBorder>
             <Stack gap="sm">
               <Text fw={600} size="sm">

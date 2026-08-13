@@ -10,6 +10,12 @@ import {
   ReportNotVisible,
 } from "~/features/reports/domain/errors";
 import {
+  addLine as addLineTransition,
+  editLine as editLineTransition,
+  removeLine as removeLineTransition,
+  reviewProgress,
+} from "~/features/reports/domain/line-editing";
+import {
   approveLine as approveLineTransition,
   requestChanges as requestChangesTransition,
 } from "~/features/reports/domain/line-transitions";
@@ -143,7 +149,7 @@ async function getReportDetail(reportId: string): Promise<Result<ReportDetail, R
 
   const { lineCount: _lineCount, ...cover } = summary;
 
-  return Result.ok({ ...cover, lines });
+  return Result.ok({ ...cover, lines, progress: reviewProgress(lines) });
 }
 
 export async function addReportLine(
@@ -154,6 +160,12 @@ export async function addReportLine(
 
   if (!summary) {
     return Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
+  }
+
+  const allowed = addLineTransition({ reportStatus: summary.status });
+
+  if (Result.isError(allowed)) {
+    return allowed;
   }
 
   await db.insert(reportLines).values({
@@ -312,6 +324,60 @@ export async function requestLineChanges(
       updatedAt: new Date(),
     })
     .where(eq(reportLines.id, lineId));
+
+  return Result.ok({ ok: true as const });
+}
+
+/**
+ * 明細の編集。**編集した行の確認状況は未確認に戻ります。**
+ * 承認は内容に紐づくので、内容が変われば承認は失われます。
+ * @see docs/adr/0007-approval-is-bound-to-content.md
+ */
+export async function updateReportLine(
+  lineId: string,
+  input: CreateReportLineInput,
+): Promise<Result<{ ok: true }, ReportError>> {
+  const line = await findLineWithReportStatus(lineId);
+
+  if (!line) {
+    return Result.err(new ReportNotFound({ message: "明細が見つかりません", reportId: lineId }));
+  }
+
+  const edited = editLineTransition(line);
+
+  if (Result.isError(edited)) {
+    return edited;
+  }
+
+  await db
+    .update(reportLines)
+    .set({
+      amount: input.amount,
+      projectName: input.projectName,
+      salesOwnerId: input.salesOwnerId,
+      status: edited.value.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(reportLines.id, lineId));
+
+  return Result.ok({ ok: true as const });
+}
+
+/** 明細の削除。下書き中だけです。 */
+export async function removeReportLine(lineId: string): Promise<Result<{ ok: true }, ReportError>> {
+  const line = await findLineWithReportStatus(lineId);
+
+  if (!line) {
+    return Result.err(new ReportNotFound({ message: "明細が見つかりません", reportId: lineId }));
+  }
+
+  const removed = removeLineTransition(line);
+
+  if (Result.isError(removed)) {
+    return removed;
+  }
+
+  await db.delete(reportLines).where(eq(reportLines.id, lineId));
 
   return Result.ok({ ok: true as const });
 }

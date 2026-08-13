@@ -45,3 +45,11 @@ export async function approveLine(lineId: string) {
 export async function requestLineChanges(lineId: string, input: RequestChangesInput) {
   return toResult(await getApi().lines({ lineId }).changes.post(input));
 }
+
+export async function updateReportLine(lineId: string, input: CreateReportLineInput) {
+  return toResult(await getApi().lines({ lineId }).patch(input));
+}
+
+export async function removeReportLine(lineId: string) {
+  return toResult(await getApi().lines({ lineId }).delete());
+}

@@ -71,9 +71,19 @@ export const ReportSummarySchema = v.object({
   lineCount: v.number(),
 });
 
+/** 確認の進み具合。明細から算出します。report 側には保存しません。 */
+const ReviewProgressSchema = v.object({
+  approved: v.number(),
+  changesRequested: v.number(),
+  isFullyApproved: v.boolean(),
+  pending: v.number(),
+  total: v.number(),
+});
+
 export const ReportDetailSchema = v.object({
   ...reportCoverEntries,
   lines: v.array(ReportLineSchema),
+  progress: ReviewProgressSchema,
 });
 
 export type Client = v.InferOutput<typeof ClientSchema>;
