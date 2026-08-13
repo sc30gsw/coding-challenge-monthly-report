@@ -242,9 +242,9 @@ Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABAS
 
 ### API 仕様書（OpenAPI）
 
-`vp dev` を起動した状態で **<http://localhost:3000/api/openapi>** を開いてください。Scalar の画面で全エンドポイントを参照でき、そのまま実行もできます。
+`vp dev` を起動した状態で **<http://localhost:5173/api/openapi>** を開いてください。Scalar の画面で全エンドポイントを参照でき、そのまま実行もできます。
 
-定義は Valibot スキーマから生成しています。ルートの入力検証とこの仕様書は同じ定義を読むので、実装と仕様がずれません（[ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)）。疎通確認だけなら <http://localhost:3000/api/health> が DB の状態も返します。
+定義は Valibot スキーマから生成しています。ルートの入力検証とこの仕様書は同じ定義を読むので、実装と仕様がずれません（[ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)）。疎通確認だけなら <http://localhost:5173/api/health> が DB の状態も返します。
 
 > ポート番号は `vp dev` の出力をご確認ください。既に埋まっていると別の番号で起動します。
 
