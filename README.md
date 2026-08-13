@@ -183,7 +183,7 @@
 | ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | フレームワーク      | TanStack Start + React 19        | 確定後の書き換え禁止と権限判定を、ページを開く時点でサーバー側で行うため。ブラウザだけで判定すると、確定済みでも画面から書き換えられます → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md) |
 |  統合開発ツール      | Vite+ (`vp`)                     | すべての開発者のツールを 1 つのコマンドに揃えるため → [ADR-0006](docs/adr/0006-tanstack-start-and-vite-plus.md)                                                                                           |
-| API        | ElysiaJS                         | 型の付きの APIの提供 と仕様書を出せるため。画面用の処理とA PI を分け、調査しやすくします → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)                                                 |
+| API        | ElysiaJS                         | 型の付きの API の提供 と仕様書を出せるため。画面用の処理と API を分け、調査しやすくします → [ADR-0001](docs/adr/0001-elysia-mounted-inside-tanstack-start.md)                                                 |
 | 型の共有 / API仕様書 | Eden Treaty + `@elysia/openapi`  | 画面が使う型は API からそのまま付くので、生成し忘れがありません。仕様書は全開発者・関係者向けの契約です → [ADR-0013](docs/adr/0013-eden-treaty-with-openapi.md)                                                  |
 | バリデーション        | Valibot                          | サーバー・画面・仕様書のバリデーションルールを 1 箇所にするため。別々に書くと、片方だけ直して穴が開きます → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                        |
 | フォーム      | Formisch (`@formisch/react`)     | バリデーションルールから画面のフォームを直接作れるため。何を聞いているかは、Valibot スキーマを見れば分かります（フォーム上のSSoT契約の遵守） → [ADR-0004](docs/adr/0004-valibot-and-formisch-for-forms.md)                                         |
