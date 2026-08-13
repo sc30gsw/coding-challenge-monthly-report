@@ -125,7 +125,12 @@ function ReportDetailPage() {
 
         {isAdmin && report.status === "in_review" ? <ConfirmPanel report={report} /> : null}
 
-        <CommentThread comments={comments} lines={report.lines} reportId={report.id} />
+        <CommentThread
+          comments={comments}
+          lines={report.lines}
+          reportId={report.id}
+          viewer={user}
+        />
       </Stack>
     </main>
   );
