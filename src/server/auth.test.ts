@@ -94,6 +94,28 @@ describe("セッションの検証", () => {
 
     expect(res.status).toBe(401);
   });
+
+  it("検証できない Cookie を持っていてもログインし直せる", async () => {
+    // 署名の検証はルーティングより前に起きるので、壊れた Cookie を持っていると
+    // セッションを必要としない /auth/login まで 401 になります。拒否と同時に
+    // その Cookie を消さないと、ログインする手段が無いまま締め出されます。
+    const { cookie } = await login(actors.admin.id);
+    const tampered = `${cookie.slice(0, -4)}beef`;
+
+    const refused = await request("/auth/me", { headers: { cookie: tampered } });
+
+    expect(refused.status).toBe(401);
+    // 「消す」= Max-Age=0 を返すこと。次の要求は Cookie 無しとして扱われます。
+    expect(refused.headers.get("set-cookie")).toContain("Max-Age=0");
+
+    const retried = await request("/auth/login", {
+      body: JSON.stringify({ userId: actors.admin.id }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+
+    expect(retried.status).toBe(200);
+  });
 });
 
 describe("ログアウト", () => {

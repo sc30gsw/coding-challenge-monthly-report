@@ -47,13 +47,21 @@ export const app = new Elysia({
    * 署名の検証に失敗した Cookie は 400 ではなく 401 で返します。
    * 改竄した要求と、そもそもログインしていない要求を、呼び出し側から区別させないためです。
    *
+   * **同時にその Cookie を消します。** Elysia は署名の検証をルーティングより前に行うため、
+   * 検証できない Cookie を持っていると、セッションを必要としない `/auth/login` まで
+   * 401 になります。消さずに 401 だけ返すと、ログインし直す手段が無いまま締め出され、
+   * 復旧手段が「開発者ツールで Cookie を手で消す」しか無くなります。消しておけば、
+   * 次の要求は Cookie 無しとして扱われ、ログイン画面から復帰できます。
+   *
    * `VALIDATION` / `NOT_FOUND` / `PARSE` は Elysia 既定の応答（422 / 404 / 400）に
    * そのまま委ねます。ここで拾うのは、想定していない失敗（`UNKNOWN` / `INTERNAL_SERVER_ERROR`）
    * だけです。既定のハンドラは `error.message` をそのまま本文に書くため、DB の例外だと
    * 生成 SQL とバインド値が応答に漏れます。ここで拾わなければ、その形状を誰も決めていません。
    */
-  .onError(({ code, error, status }) => {
+  .onError(({ code, error, set, status }) => {
     if (code === "INVALID_COOKIE_SIGNATURE") {
+      set.headers["set-cookie"] = `${SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`;
+
       return status(401, "Not signed in");
     }
 
