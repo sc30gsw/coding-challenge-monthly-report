@@ -393,15 +393,15 @@ vp dev
 | コマンド             | 用途                                              |
 | -------------------- | ------------------------------------------------- |
 | `vp run setup`       | clone 直後の一括セットアップ（上記の 4 つ）       |
-| `vp dev`             | 開発用の起動                                      |
-| `vp build`           | 提出用のビルド                                    |
+| `vp dev`             | ローカルサーバーの起動                                      |
+| `vp build`           | ビルド                                    |
 | `vp check`           | 形式・検査・型の確認（`--fix` で自動修正）        |
 | `vp test`            | テスト（Docker の PostgreSQL が起動している前提） |
-| `vp run db:reset`    | 保管庫の起動 → 定義の適用 → 見本データをやり直す |
-| `vp run db:up`       | PostgreSQL の起動のみ                             |
+| `vp run db:reset`    | DBの起動 → 定義の適用 → 見本（seed）データのリセット |
+| `vp run db:up`       | PostgreSQL の起動                             |
 | `vp run db:down`     | PostgreSQL の停止                                 |
-| `vp run db:generate` | 定義から変更手順を生成                            |
-| `vp run db:migrate`  | 定義の適用のみ                                    |
-| `vp run seed`        | 見本データの投入のみ（何度実行しても同じ結果）    |
-| `vp run fallow`      | 使っていないファイル・部品・公開口の検出          |
-| `vp run doctor`      | 画面向けの健全性チェック                          |
+| `vp run db:generate` | DBスキーマ定義から差分のSQLマイグレーションファイルを生成                          |
+| `vp run db:migrate`  | `vp run db:generate`で生成済みのマイグレーションファイルを実際のDBに適用                                  |
+| `vp run seed`        | 見本（seed）データの投入    |
+| `vp run fallow`      | 使っていないファイル・コードなどのデッドロジック・コードの検出          |
+| `vp run doctor`      | React 向けの品質チェッカー                          |
