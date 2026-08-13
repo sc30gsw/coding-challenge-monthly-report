@@ -242,7 +242,7 @@ export async function requestReview(reportId: string): Promise<Result<ReportSumm
     return Result.err(new ReportNotFound({ message: "報告書が見つかりません", reportId }));
   }
 
-  const moved = requestReviewTransition(summary);
+  const moved = requestReviewTransition({ ...summary, lineCount: summary.lineCount });
 
   if (Result.isError(moved)) {
     return moved;

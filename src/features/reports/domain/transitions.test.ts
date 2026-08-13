@@ -11,8 +11,8 @@ import type { ReportStatus } from "~/features/reports/schemas/report-schema";
  */
 
 describe("確認依頼", () => {
-  it("下書きから確認中へ進める", () => {
-    const moved = requestReview({ status: "draft" });
+  it("明細のある下書きから確認中へ進める", () => {
+    const moved = requestReview({ lineCount: 1, status: "draft" });
 
     expect(Result.isOk(moved)).toBe(true);
     expect(Result.isOk(moved) ? moved.value.status : null).toBe("in_review");
@@ -21,21 +21,29 @@ describe("確認依頼", () => {
   it.each(["in_review", "confirmed", "superseded"] as const satisfies ReportStatus[])(
     "%s からは確認依頼できない",
     (status) => {
-      const moved = requestReview({ status });
+      const moved = requestReview({ lineCount: 1, status });
 
       expect(Result.isError(moved)).toBe(true);
     },
   );
 
   it("拒否の理由に、どの状態から何をしようとしたかが載る", () => {
-    const moved = requestReview({ status: "confirmed" });
+    const moved = requestReview({ lineCount: 1, status: "confirmed" });
 
-    if (!Result.isError(moved)) {
-      throw new Error("expected the transition to be refused");
+    if (!Result.isError(moved) || moved.error._tag !== "TransitionNotAllowed") {
+      throw new Error("expected the transition to be refused as TransitionNotAllowed");
     }
 
-    expect(moved.error._tag).toBe("TransitionNotAllowed");
     expect(moved.error.from).toBe("confirmed");
     expect(moved.error.to).toBe("in_review");
+  });
+
+  it("明細が 0 件なら確認依頼できない", () => {
+    // 営業の一覧は「担当する明細を含む報告書」として導出しています。明細が無いと
+    // 誰の一覧にも出ないので、確認依頼は誰にも届きません。
+    const moved = requestReview({ lineCount: 0, status: "draft" });
+
+    expect(Result.isError(moved)).toBe(true);
+    expect(Result.isError(moved) ? moved.error._tag : null).toBe("ReportHasNoLines");
   });
 });

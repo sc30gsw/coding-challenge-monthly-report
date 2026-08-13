@@ -225,8 +225,21 @@ describe("拒否の理由", () => {
 });
 
 describe("確認依頼", () => {
-  it("管理者が下書きを確認中にできる", async () => {
+  /** 確認依頼には明細が 1 件以上要ります。 */
+  async function draftWithLine() {
     const report = await createDraft();
+
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    return report;
+  }
+
+  it("管理者が下書きを確認中にできる", async () => {
+    const report = await draftWithLine();
 
     const res = await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
 
@@ -235,7 +248,7 @@ describe("確認依頼", () => {
   });
 
   it("確認中の報告書をもう一度確認依頼できない", async () => {
-    const report = await createDraft();
+    const report = await draftWithLine();
     await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
 
     const res = await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
@@ -246,7 +259,7 @@ describe("確認依頼", () => {
   });
 
   it("営業は確認依頼できない", async () => {
-    const report = await createDraft();
+    const report = await draftWithLine();
 
     const res = await call(`/reports/${report.id}/review`, { cookie: sales, method: "POST" });
 
@@ -254,7 +267,7 @@ describe("確認依頼", () => {
   });
 
   it("下書きへ戻す操作は無い", async () => {
-    const report = await createDraft();
+    const report = await draftWithLine();
     await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
 
     const res = await call(`/reports/${report.id}/draft`, { cookie: admin, method: "POST" });
@@ -582,5 +595,31 @@ describe("明細の編集と削除", () => {
     });
 
     expect(res.status).toBe(403);
+  });
+});
+
+describe("明細のない報告書", () => {
+  it("確認依頼を出せない", async () => {
+    // 営業の一覧は担当明細から導出するので、明細の無い報告書は誰の一覧にも出ません。
+    // 空のまま確認中にすると、誰にも届かない依頼が残ります。
+    const report = await createDraft();
+
+    const res = await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(409);
+    expect(res.json<{ tag: string }>().tag).toBe("ReportHasNoLines");
+  });
+
+  it("明細を足せば確認依頼を出せる", async () => {
+    const report = await createDraft();
+    await call(`/reports/${report.id}/lines`, {
+      body: { amount: "1000", projectName: "案件", salesOwnerId: actors.sales.id },
+      cookie: admin,
+      method: "POST",
+    });
+
+    const res = await call(`/reports/${report.id}/review`, { cookie: admin, method: "POST" });
+
+    expect(res.status).toBe(200);
   });
 });

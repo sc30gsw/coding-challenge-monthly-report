@@ -51,9 +51,22 @@ export class NotLineOwner extends TaggedError("NotLineOwner")<{
   message: string;
 }> {}
 
+/**
+ * 明細が 1 件も無い、という拒否です。
+ *
+ * 確認依頼にも確定にも効きます。空の報告書に対する「確認してください」は
+ * 誰にも届かず（営業の一覧は明細から導出するため）、空のまま確定すると
+ * 中身の無い書類が不可逆に残ります。
+ */
+export class ReportHasNoLines extends TaggedError("ReportHasNoLines")<{
+  message: string;
+  reportId: string;
+}> {}
+
 export type ReportError =
   | ClientNotFound
   | NotLineOwner
+  | ReportHasNoLines
   | ReportNotFound
   | ReportNotVisible
   | TransitionNotAllowed;

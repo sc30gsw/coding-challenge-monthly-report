@@ -1,6 +1,6 @@
 import { Result } from "better-result";
 
-import { TransitionNotAllowed } from "~/features/reports/domain/errors";
+import { ReportHasNoLines, TransitionNotAllowed } from "~/features/reports/domain/errors";
 import type { ReportStatus } from "~/features/reports/schemas/report-schema";
 
 /**
@@ -12,7 +12,11 @@ import type { ReportStatus } from "~/features/reports/schemas/report-schema";
  * @see docs/adr/0005-better-result-for-expected-failures.md
  */
 
-type ReportState = Record<"status", ReportStatus>;
+type ReportState = {
+  id?: string;
+  lineCount: number;
+  status: ReportStatus;
+};
 
 const STATUS_LABELS = {
   confirmed: "確定済み",
@@ -22,19 +26,31 @@ const STATUS_LABELS = {
 } as const satisfies Record<ReportStatus, string>;
 
 /**
- * 確認依頼。下書きからのみ進めます。
+ * 確認依頼。下書きから、明細が 1 件以上あるときだけ進めます。
  *
- * 明細が 0 件でも止めません。確定（issue #8）とは違い、確認依頼は不可逆ではなく、
- * `in_review` のまま明細を足せる（issue #7）ので、業務が壊れないためです。
- * 空のまま提出できてしまう確定側だけが、件数を明示的に条件へ足すべき場所です。
+ * 件数を条件に入れるのは、営業の一覧を「担当する明細を含む報告書」として
+ * 導出しているためです。明細が無い報告書は誰の一覧にも出ないので、
+ * 空のまま確認依頼を出すと、誰にも届かない依頼が確認中として残ります。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
  */
-export function requestReview(report: ReportState) {
+export function requestReview(
+  report: ReportState,
+): Result<{ status: "in_review" }, ReportHasNoLines | TransitionNotAllowed> {
   if (report.status !== "draft") {
     return Result.err(
       new TransitionNotAllowed({
         from: report.status,
         message: `${STATUS_LABELS[report.status]}の報告書は確認依頼できません`,
         to: "in_review",
+      }),
+    );
+  }
+
+  if (report.lineCount === 0) {
+    return Result.err(
+      new ReportHasNoLines({
+        message: "明細が 1 件も無い報告書は確認依頼できません",
+        reportId: report.id ?? "",
       }),
     );
   }

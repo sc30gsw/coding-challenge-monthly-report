@@ -37,6 +37,7 @@ function toHttpFailure(error: ReportError) {
   return matchError(error, {
     ClientNotFound: () => ({ body, status: 404 as const }),
     NotLineOwner: () => ({ body, status: 403 as const }),
+    ReportHasNoLines: () => ({ body, status: 409 as const }),
     ReportNotFound: () => ({ body, status: 404 as const }),
     ReportNotVisible: () => ({ body, status: 403 as const }),
     TransitionNotAllowed: () => ({ body, status: 409 as const }),

@@ -8,6 +8,7 @@ import { AddReportLineForm } from "~/features/reports/components/add-report-line
 import { ReportLineTable } from "~/features/reports/components/report-line-table";
 import { ReportStatusBadge } from "~/features/reports/components/report-status-badge";
 import { ReviewProgressSummary } from "~/features/reports/components/review-progress-summary";
+import type { ReportDetail } from "~/features/reports/schemas/report-schema";
 import { orThrow } from "~/lib/api/result";
 
 export const Route = createFileRoute("/reports/$reportId")({
@@ -123,8 +124,9 @@ function ReportDetailPage() {
  * 確認依頼。押すと営業が明細を確認できるようになります。
  * 下書きへ戻す操作はありません。差し戻し対応の編集は確認中のまま行えるためです。
  */
-function RequestReviewPanel({ report }: Record<"report", { id: string }>) {
+function RequestReviewPanel({ report }: Record<"report", ReportDetail>) {
   const router = useRouter();
+  const hasLines = report.progress.total > 0;
 
   async function handleRequestReview() {
     await requestReview(report.id);
@@ -137,7 +139,18 @@ function RequestReviewPanel({ report }: Record<"report", { id: string }>) {
         <Text size="sm">
           確認依頼を出すと、明細の担当営業がこの報告書を開けるようになります。下書きへ戻す操作はありません。
         </Text>
-        <Button onClick={handleRequestReview} size="xs">
+
+        {/* 押せない理由を出します。ボタンを消すと、何が足りないのかを
+            明細表から自力で探すことになります。
+            @see docs/adr/0012-confirm-preconditions.md */}
+        {hasLines ? null : (
+          <Text c="dimmed" size="sm">
+            明細が 1
+            件も無いと確認依頼を出せません。担当営業は「自分が担当する明細を含む報告書」として一覧に出るため、明細が無い報告書は誰にも届きません。
+          </Text>
+        )}
+
+        <Button disabled={!hasLines} onClick={handleRequestReview} size="xs">
           確認依頼を出す
         </Button>
       </Stack>
