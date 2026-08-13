@@ -1,9 +1,25 @@
+import { createRequire } from "node:module";
+
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { RECOMMENDED_RULES, TANSTACK_START_RULES } from "oxlint-plugin-react-doctor";
 import { defineConfig } from "vite-plus";
+
+// libReplacement has no import; this require is the link unused-dep scanners can see.
+const betterTypescriptLib: unknown = createRequire(import.meta.url)(
+  "better-typescript-lib/package.json",
+);
+
+if (
+  typeof betterTypescriptLib !== "object" ||
+  betterTypescriptLib === null ||
+  !("name" in betterTypescriptLib) ||
+  betterTypescriptLib.name !== "better-typescript-lib"
+) {
+  throw new Error("tsconfig libReplacement requires better-typescript-lib");
+}
 
 const reactDoctorRules = {
   ...RECOMMENDED_RULES,

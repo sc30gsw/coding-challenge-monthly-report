@@ -1,13 +1,15 @@
 import { Badge, Button, Group, Text } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
+import { Result } from "better-result";
+import { useState } from "react";
 
 import { logout } from "~/features/auth/api/session";
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
+import { ROLE_LABELS, type SessionUser } from "~/features/auth/schemas/session-schema";
 
-const ROLE_LABELS = {
-  admin: "管理者",
-  sales: "営業",
-} as const satisfies Record<SessionUser["role"], string>;
+type LogoutStatus =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "error"; message: string };
 
 /**
  * いま誰としてアプリを見ているかを常に出します。
@@ -15,9 +17,23 @@ const ROLE_LABELS = {
  */
 export function SessionBar({ user }: Record<"user", SessionUser>) {
   const router = useRouter();
+  const [logoutStatus, setLogoutStatus] = useState<LogoutStatus>({ status: "idle" });
+  const isPending = logoutStatus.status === "pending";
 
   async function handleLogout() {
-    await logout();
+    if (isPending) {
+      return;
+    }
+
+    setLogoutStatus({ status: "pending" });
+
+    const result = await logout();
+
+    if (Result.isError(result)) {
+      setLogoutStatus({ message: result.error.message, status: "error" });
+      return;
+    }
+
     await router.invalidate();
     await router.navigate({ to: "/login" });
   }
@@ -30,9 +46,16 @@ export function SessionBar({ user }: Record<"user", SessionUser>) {
           {ROLE_LABELS[user.role]}
         </Badge>
       </Group>
-      <Button onClick={handleLogout} size="xs" variant="subtle">
-        ログアウト
-      </Button>
+      <Group gap="xs">
+        {logoutStatus.status === "error" ? (
+          <Text aria-live="polite" c="red" size="xs">
+            {logoutStatus.message}
+          </Text>
+        ) : null}
+        <Button loading={isPending} onClick={handleLogout} size="xs" variant="subtle">
+          ログアウト
+        </Button>
+      </Group>
     </Group>
   );
 }

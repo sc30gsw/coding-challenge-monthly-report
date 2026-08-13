@@ -1,6 +1,8 @@
 import { Alert, Stack, Text, Title } from "@mantine/core";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
+import { ROLE_LABELS } from "~/features/auth/schemas/session-schema";
+
 export const Route = createFileRoute("/")({
   beforeLoad: ({ context }) => {
     if (!context.user) {
@@ -22,7 +24,7 @@ function Home() {
           月次報告書
         </Title>
         <Text>
-          {user.name} さん（{user.role === "admin" ? "管理者" : "営業"}）としてログインしています。
+          {user.name} さん（{ROLE_LABELS[user.role]}）としてログインしています。
         </Text>
         <Alert color="gray" title="ここから先は未実装です" variant="light">
           <Text size="sm">

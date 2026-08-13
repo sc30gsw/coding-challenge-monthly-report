@@ -4,6 +4,7 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import { RouteStatus } from "~/components/route-status";
 import { fetchCurrentUser } from "~/features/auth/api/session";
 import { SessionBar } from "~/features/auth/components/session-bar";
 import { theme } from "~/lib/theme";
@@ -24,7 +25,7 @@ export const Route = createRootRoute({
    */
   beforeLoad: async () => ({ user: await fetchCurrentUser() }),
   component: RootComponent,
-  errorComponent: ErrorComponent,
+  errorComponent: ({ error }: ErrorComponentProps) => <RouteStatus error={error} kind="error" />,
   head: () => ({
     links: [{ href: appCss, rel: "stylesheet" }],
     meta: [
@@ -33,8 +34,8 @@ export const Route = createRootRoute({
       { title: "月次報告書 共同作成アプリケーション" },
     ],
   }),
-  notFoundComponent: NotFoundComponent,
-  pendingComponent: PendingComponent,
+  notFoundComponent: () => <RouteStatus kind="not-found" />,
+  pendingComponent: () => <RouteStatus kind="pending" />,
 });
 
 function RootComponent() {
@@ -59,31 +60,5 @@ function RootComponent() {
         <Scripts />
       </body>
     </html>
-  );
-}
-
-function NotFoundComponent() {
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-semibold">404</h1>
-      <p>ページが見つかりませんでした。</p>
-    </div>
-  );
-}
-
-function ErrorComponent({ error }: ErrorComponentProps) {
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-semibold text-red-600">エラー</h1>
-      <p>{error.message}</p>
-    </div>
-  );
-}
-
-function PendingComponent() {
-  return (
-    <div className="p-4">
-      <p>読み込み中...</p>
-    </div>
   );
 }

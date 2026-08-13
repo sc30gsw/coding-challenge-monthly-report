@@ -13,6 +13,7 @@
 
     /* Strict */
     "strict": true,
+    /* lib.d.ts is replaced by better-typescript-lib when this is true. */
     "libReplacement": true,
     "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true,

@@ -1,3 +1,5 @@
+import { Result, TaggedError } from "better-result";
+
 import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { getApi } from "~/lib/api/client";
 
@@ -5,6 +7,11 @@ import { getApi } from "~/lib/api/client";
  * 画面から見たセッションの入出力です。認可の判定はサーバーが行うので、
  * ここは「いま誰か」を取ってくるだけに留めます。
  */
+
+export class AuthRequestFailed extends TaggedError("AuthRequestFailed")<{
+  cause?: unknown;
+  message: string;
+}> {}
 
 /** 未ログインは失敗ではなく通常の状態なので、null を返します。 */
 export async function fetchCurrentUser(): Promise<SessionUser | null> {
@@ -28,9 +35,31 @@ export async function fetchSelectableUsers(): Promise<SessionUser[]> {
 }
 
 export async function login(userId: string) {
-  return await getApi().auth.login.post({ userId });
+  const { data, error } = await getApi().auth.login.post({ userId });
+
+  if (error || data == null) {
+    return Result.err(
+      new AuthRequestFailed({
+        cause: error,
+        message: "ログインできませんでした",
+      }),
+    );
+  }
+
+  return Result.ok(data);
 }
 
 export async function logout() {
-  return await getApi().auth.logout.post();
+  const { data, error } = await getApi().auth.logout.post();
+
+  if (error || data == null) {
+    return Result.err(
+      new AuthRequestFailed({
+        cause: error,
+        message: "ログアウトできませんでした",
+      }),
+    );
+  }
+
+  return Result.ok(data);
 }
