@@ -13,6 +13,30 @@ export class AuthRequestFailed extends TaggedError("AuthRequestFailed")<{
   message: string;
 }> {}
 
+type EdenPayload<T> = {
+  data: T | null;
+  error: unknown;
+};
+
+async function postSession<T>(request: () => Promise<EdenPayload<T>>, message: string) {
+  const response = await Result.tryPromise({
+    catch: (cause) => new AuthRequestFailed({ cause, message }),
+    try: request,
+  });
+
+  if (Result.isError(response)) {
+    return response;
+  }
+
+  const { data, error } = response.value;
+
+  if (error || data == null) {
+    return Result.err(new AuthRequestFailed({ cause: error, message }));
+  }
+
+  return Result.ok(data);
+}
+
 /** 未ログインは失敗ではなく通常の状態なので、null を返します。 */
 export async function fetchCurrentUser(): Promise<SessionUser | null> {
   const { data, error } = await getApi().auth.me.get();
@@ -35,31 +59,15 @@ export async function fetchSelectableUsers(): Promise<SessionUser[]> {
 }
 
 export async function login(userId: string) {
-  const { data, error } = await getApi().auth.login.post({ userId });
-
-  if (error || data == null) {
-    return Result.err(
-      new AuthRequestFailed({
-        cause: error,
-        message: "ログインできませんでした",
-      }),
-    );
-  }
-
-  return Result.ok(data);
+  return await postSession(
+    async () => await getApi().auth.login.post({ userId }),
+    "ログインできませんでした",
+  );
 }
 
 export async function logout() {
-  const { data, error } = await getApi().auth.logout.post();
-
-  if (error || data == null) {
-    return Result.err(
-      new AuthRequestFailed({
-        cause: error,
-        message: "ログアウトできませんでした",
-      }),
-    );
-  }
-
-  return Result.ok(data);
+  return await postSession(
+    async () => await getApi().auth.logout.post(),
+    "ログアウトできませんでした",
+  );
 }

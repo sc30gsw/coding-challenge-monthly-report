@@ -1,4 +1,5 @@
 import { asc, eq } from "drizzle-orm";
+import { createSelectSchema } from "drizzle-valibot";
 import { Elysia } from "elysia";
 import * as v from "valibot";
 
@@ -21,6 +22,15 @@ import {
  */
 
 export const SESSION_COOKIE = "monthly_report_session";
+
+const sessionUserFromTable = v.pick(createSelectSchema(users), ["id", "name", "role"]);
+
+type SessionUserFromTable = v.InferOutput<typeof sessionUserFromTable>;
+type AssertEqual<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : never;
+
+const sessionUserMatchesTable: AssertEqual<SessionUser, SessionUserFromTable> = true;
+void sessionUserMatchesTable;
 
 async function findUser(id: string): Promise<SessionUser | null> {
   const [found] = await db

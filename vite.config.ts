@@ -21,6 +21,10 @@ if (
   throw new Error("tsconfig libReplacement requires better-typescript-lib");
 }
 
+type JsonParseIsAny = 0 extends 1 & ReturnType<typeof JSON.parse> ? true : false;
+const jsonParseIsNotAny: JsonParseIsAny extends true ? never : true = true;
+void jsonParseIsNotAny;
+
 const reactDoctorRules = {
   ...RECOMMENDED_RULES,
   ...TANSTACK_START_RULES,

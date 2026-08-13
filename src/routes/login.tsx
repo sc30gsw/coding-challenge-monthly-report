@@ -34,15 +34,19 @@ function LoginPage() {
 
     setLoginStatus({ status: "pending", userId });
 
-    const result = await login(userId);
+    try {
+      const result = await login(userId);
 
-    if (Result.isError(result)) {
-      setLoginStatus({ message: result.error.message, status: "error" });
-      return;
+      if (Result.isError(result)) {
+        setLoginStatus({ message: result.error.message, status: "error" });
+        return;
+      }
+
+      await router.invalidate();
+      await router.navigate({ to: "/" });
+    } catch {
+      setLoginStatus({ message: "ログインできませんでした", status: "error" });
     }
-
-    await router.invalidate();
-    await router.navigate({ to: "/" });
   }
 
   return (

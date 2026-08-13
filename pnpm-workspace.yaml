@@ -20,6 +20,10 @@ onlyBuiltDependencies:
 # 公開直後の侵害された可能性のあるリリースを避けるため、公開から1日（1440分）経過したバージョンのみ許可する
 minimumReleaseAge: 1440
 
+# better-typescript-lib は `@typescript/lib-*` を差し込む。pnpm はデフォルトで
+# それをルートの node_modules に出さないので、TypeScript の libReplacement が効かない。
+publicHoistPattern:
+  - "@typescript/*"
+
 allowBuilds:
   esbuild: set this to true or false
-  msgpackr-extract: false

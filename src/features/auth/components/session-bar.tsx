@@ -27,15 +27,19 @@ export function SessionBar({ user }: Record<"user", SessionUser>) {
 
     setLogoutStatus({ status: "pending" });
 
-    const result = await logout();
+    try {
+      const result = await logout();
 
-    if (Result.isError(result)) {
-      setLogoutStatus({ message: result.error.message, status: "error" });
-      return;
+      if (Result.isError(result)) {
+        setLogoutStatus({ message: result.error.message, status: "error" });
+        return;
+      }
+
+      await router.invalidate();
+      await router.navigate({ to: "/login" });
+    } catch {
+      setLogoutStatus({ message: "ログアウトできませんでした", status: "error" });
     }
-
-    await router.invalidate();
-    await router.navigate({ to: "/login" });
   }
 
   return (
