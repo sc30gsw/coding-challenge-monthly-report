@@ -120,7 +120,11 @@ export const reportLines = pgTable(
     salesOwnerId: uuid("sales_owner_id")
       .notNull()
       .references(() => users.id),
-    /** 差し戻しの理由。status が changes_requested のときだけ入ります。 */
+    /**
+     * 直近の差し戻し理由。管理者が編集して status が pending に戻ったあとも残します。
+     * 対応すべき指摘の文言が編集の瞬間に消えると、業務として成立しないためです。
+     * @see docs/adr/0007-approval-is-bound-to-content.md
+     */
     changeRequestReason: text("change_request_reason"),
     /** 表示順。 */
     position: integer("position").notNull().default(0),
@@ -128,10 +132,13 @@ export const reportLines = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    /** 差し戻しには理由が要ります。それ以外の状態では理由を持ちません。 */
+    /**
+     * 差し戻しには必ず理由が要ります。逆は課しません（理由は履歴として残るため）。
+     * 双方向にすると、編集で pending に戻った瞬間に理由が消えます。
+     */
     check(
-      "report_lines_reason_only_when_changes_requested",
-      sql`(${table.status} = 'changes_requested') = (${table.changeRequestReason} is not null)`,
+      "report_lines_reason_required_when_changes_requested",
+      sql`${table.status} <> 'changes_requested' or ${table.changeRequestReason} is not null`,
     ),
     check("report_lines_amount_non_negative", sql`${table.amount} >= 0`),
     index("report_lines_report_idx").on(table.reportId),

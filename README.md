@@ -82,7 +82,7 @@ README では技術の選定理由と、設計の要点だけを記載します�
 
 ## セットアップ
 
-> DB・seed まで通す手順は、配線が入り次第ここに追記します。
+> seed（各状態のサンプルデータ）はまだ入っていません。`vp run setup` は警告を出して seed だけを飛ばします。
 
 ### Vite+（`vp`）のインストール
 
@@ -106,24 +106,40 @@ irm https://vite.plus/ps1 | iex
 
 - **Node.js** — [`.node-version`](.node-version) をご参照ください
 - **Vite+** — 上の手順で `vp` が PATH にあること
-- **Docker** — PostgreSQL の起動に使います（手順は後述予定です）
+- **Docker** — PostgreSQL の起動に使います。デーモンを起動しておいてください
 
 ```bash
 git clone https://github.com/sc30gsw/coding-challenge-monthly-report.git
 cd coding-challenge-monthly-report
-vp install
+vp run setup
 vp dev
 ```
 
+`vp run setup` が行うのは次の 4 つです。何度実行しても壊れません。
+
+1. `.env.example` から `.env` を作り、`COOKIE_SECRET` を `openssl` で生成して埋める
+2. `vp install`
+3. `docker compose` で PostgreSQL を起動し、healthcheck が通るまで待つ
+4. アプリ用とテスト用の両方のデータベースにマイグレーションを適用し、seed を流す
+
+Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABASE_URL` と `TEST_DATABASE_URL`
+を書き換えてから `vp run setup` を実行してください。Docker には触らずマイグレーションだけを当てます。
+
 ## コマンド
 
-| コマンド        | 用途                                            |
-| --------------- | ----------------------------------------------- |
-| `vp dev`        | 開発サーバー（HMR）                             |
-| `vp build`      | プロダクションビルド                            |
-| `vp check`      | format + lint + typecheck（`--fix` で自動修正） |
-| `vp test`       | テスト                                          |
-| `vp run fallow` | 未使用ファイル・依存・エクスポートの検出        |
-| `vp run doctor` | React 向けの健全性チェック                      |
+| コマンド             | 用途                                              |
+| -------------------- | ------------------------------------------------- |
+| `vp run setup`       | clone 直後の一括セットアップ（上記の 4 つ）       |
+| `vp dev`             | 開発サーバー（HMR）                               |
+| `vp build`           | プロダクションビルド                              |
+| `vp check`           | format + lint + typecheck（`--fix` で自動修正）   |
+| `vp test`            | テスト（Docker の PostgreSQL が起動している前提） |
+| `vp run db:reset`    | DB 起動 → マイグレーション → seed をやり直す      |
+| `vp run db:up`       | PostgreSQL の起動のみ                             |
+| `vp run db:down`     | PostgreSQL の停止                                 |
+| `vp run db:generate` | スキーマ定義からマイグレーションを生成            |
+| `vp run db:migrate`  | マイグレーションの適用のみ                        |
+| `vp run fallow`      | 未使用ファイル・依存・エクスポートの検出          |
+| `vp run doctor`      | React 向けの健全性チェック                        |
 
 `pnpm` / `npm` は直接使いません。依存の追加も `vp add` を通してください（[AGENTS.md](AGENTS.md)）。

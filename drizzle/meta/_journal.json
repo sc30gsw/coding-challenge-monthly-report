@@ -15,6 +15,13 @@
       "when": 1786608946219,
       "tag": "0001_immutable_confirmed_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786610224636,
+      "tag": "0002_close_immutability_bypasses",
+      "breakpoints": true
     }
   ]
 }
