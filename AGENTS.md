@@ -35,7 +35,8 @@ Human-readable source of truth: [CODING_GUIDELINES.md](./CODING_GUIDELINES.md). 
 
 Installed packages are the source of truth (`package.json`). Do not write code against libraries that are not installed.
 
-- **Installed:** TanStack Start + React 19, ElysiaJS, Eden Treaty, `@elysia/openapi`, Mantine 9 with `tailwind-preset-mantine` on Tailwind 4, Valibot, Formisch, better-result, Drizzle, `pg`, `cnfast`.
+- **Installed:** TanStack Start + React 19, ElysiaJS, Eden Treaty, `@elysia/openapi`, Mantine 9 (with `@mantine/dates` + `dayjs`) and `tailwind-preset-mantine` on Tailwind 4, Valibot, `@valibot/to-json-schema`, Formisch, better-result, Drizzle, `pg`, `cnfast`.
+- **Tooling:** `tsx` runs TS scripts outside Vite (the seed needs the `~` alias); `jsdom` + Testing Library back the frontend integration tests.
 - **Auth:** signed-cookie dummy login — not Better Auth ([ADR 0015](./docs/adr/0015-signed-cookie-dummy-login.md)).
 - **Rejected:** Better Auth, Jotai, ky, MSW, TanStack Query, TanStack Form, generated API clients (`src/lib/api/generated/`), `clsx` / `tailwind-merge` (`cnfast` covers this).
 

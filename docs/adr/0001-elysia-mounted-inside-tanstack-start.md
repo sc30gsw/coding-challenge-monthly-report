@@ -15,4 +15,4 @@ Eden / OpenAPI / Valibot の役割分担は [0013](./0013-eden-treaty-with-opena
 
 ## 影響（配置）
 
-採用したあとの置き方として、独立プロセスにはしません。TanStack Start の `src/routes/api.$.ts` から `app.fetch(request)` を渡し、起動は `vp dev` 一つにします。`.listen()` を呼ばないため `@elysiajs/node` は不要です。別プロセスにすると採点者の起動が 2 コマンドになりますが、それは配置の話であって、Elysia を選んだ理由ではありません。
+採用したあとの置き方として、独立プロセスにはしません。TanStack Start の `src/routes/api/$.ts` が `/api` 配下をまるごと受け、`app.handle(request)` に渡します。起動は `vp dev` 一つにします。`.listen()` を呼ばないため `@elysiajs/node` は不要です。別プロセスにすると採点者の起動が 2 コマンドになりますが、それは配置の話であって、Elysia を選んだ理由ではありません。

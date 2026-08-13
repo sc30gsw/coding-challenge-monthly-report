@@ -1,0 +1,253 @@
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import { screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+
+import { ReportLineTable } from "~/features/reports/components/report-line-table";
+import type { ReportDetail } from "~/features/reports/schemas/report-schema";
+import { connectFetchToApp, renderWithProviders } from "~/test/browser";
+
+/**
+ * 営業が自分の担当行を読み取れることを守ります。
+ * 見えるが触れない、という関係を画面で表現できていないと、
+ * 「どれを確認すればいいのか」が分からなくなります。
+ * @see docs/adr/0010-sales-owner-lives-on-the-line.md
+ */
+
+const MINE = "11111111-1111-1111-1111-111111111111";
+const THEIRS = "22222222-2222-2222-2222-222222222222";
+
+const lines: ReportDetail["lines"] = [
+  {
+    amount: "1000.00",
+    changeRequestReason: null,
+    id: "line-mine",
+    previouslyApproved: false,
+    projectName: "自分の案件",
+    salesOwner: { id: MINE, name: "佐藤 花子" },
+    status: "pending",
+  },
+  {
+    amount: "2000.00",
+    changeRequestReason: null,
+    id: "line-theirs",
+    previouslyApproved: false,
+    projectName: "同僚の案件",
+    salesOwner: { id: THEIRS, name: "鈴木 一郎" },
+    status: "approved",
+  },
+];
+
+let disconnect: () => void;
+
+beforeEach(() => {
+  disconnect = connectFetchToApp();
+});
+
+afterEach(() => {
+  disconnect();
+});
+
+describe("明細一覧", () => {
+  it("自分の担当行だけに印がつく", async () => {
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
+
+    const mine = screen.getByRole("row", { name: /自分の案件/ });
+    const theirs = screen.getByRole("row", { name: /同僚の案件/ });
+
+    expect(within(mine).getByText("自分の担当")).toBeInTheDocument();
+    expect(within(theirs).queryByText("自分の担当")).not.toBeInTheDocument();
+  });
+
+  it("担当外の明細も読める", async () => {
+    // 自分の行だけに絞ると、金額合計が何を指すのか分からないまま承認することになります。
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
+
+    expect(screen.getByText("同僚の案件")).toBeInTheDocument();
+    expect(screen.getByText("鈴木 一郎")).toBeInTheDocument();
+  });
+});
+
+describe("確認の操作", () => {
+  it("確認できる状況では、自分の担当行にだけ操作が出る", async () => {
+    await renderWithProviders(<ReportLineTable canReview lines={lines} viewerId={MINE} />);
+
+    const mine = screen.getByRole("row", { name: /自分の案件/ });
+    const theirs = screen.getByRole("row", { name: /同僚の案件/ });
+
+    expect(within(mine).getByRole("button", { name: "承認" })).toBeInTheDocument();
+    expect(within(theirs).queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+  });
+
+  it("確認できない状況では、自分の行にも操作が出ない", async () => {
+    // 下書きや確定済みの報告書で承認ボタンが出ていると、押せない操作を提示することになります。
+    // なお、出さないことは防御ではありません。拒否するのはサーバーです。
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
+
+    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+  });
+
+  it("すでに確認済みの自分の行では、承認・差し戻しのボタンが押せない", async () => {
+    // 未確認に戻すのは管理者の編集だけです。営業自身が確認状況を動かせると、
+    // 一度も編集されていない内容の確認状況を自分で変えられてしまいます。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const reviewed = [{ ...lines[0], status: "approved" }, lines[1]] as ReportDetail["lines"];
+
+    await renderWithProviders(<ReportLineTable canReview lines={reviewed} viewerId={MINE} />);
+
+    const mine = screen.getByRole("row", { name: /自分の案件/ });
+
+    expect(within(mine).getByRole("button", { name: "承認" })).toHaveAttribute(
+      "data-disabled",
+      "true",
+    );
+    expect(within(mine).getByRole("button", { name: "差し戻し" })).toHaveAttribute(
+      "data-disabled",
+      "true",
+    );
+  });
+
+  it("承認後に編集されて未確認に戻った行には、その旨が出る", async () => {
+    // status だけでは「一度も見られていない未確認」と「承認後に編集された未確認」を
+    // 読み分けられません。営業がもう一度確認を求められる理由がこれです。
+    // @see docs/adr/0007-approval-is-bound-to-content.md
+    const editedAfterApproval = [
+      { ...lines[0], previouslyApproved: true },
+      lines[1],
+    ] as ReportDetail["lines"];
+
+    await renderWithProviders(
+      <ReportLineTable canReview={false} lines={editedAfterApproval} viewerId={MINE} />,
+    );
+
+    expect(
+      screen.getByText("承認済みでしたが、内容が編集されて未確認に戻りました"),
+    ).toBeInTheDocument();
+  });
+
+  it("一度も確認されていない行には、編集後の案内が出ない", async () => {
+    await renderWithProviders(<ReportLineTable canReview={false} lines={lines} viewerId={MINE} />);
+
+    expect(
+      screen.queryByText("承認済みでしたが、内容が編集されて未確認に戻りました"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("差し戻しの理由が表示される", async () => {
+    const sentBack = [
+      {
+        ...lines[0],
+        changeRequestReason: "金額が請求書と一致しません",
+        status: "changes_requested",
+      },
+      ...lines.slice(1),
+    ] as ReportDetail["lines"];
+
+    await renderWithProviders(<ReportLineTable canReview lines={sentBack} viewerId={MINE} />);
+
+    expect(screen.getByText("金額が請求書と一致しません")).toBeInTheDocument();
+  });
+});
+
+describe("管理者の操作", () => {
+  const salesUsers = [
+    { id: MINE, name: "佐藤 花子", role: "sales" as const },
+    { id: THEIRS, name: "鈴木 一郎", role: "sales" as const },
+  ];
+
+  it("編集できる状況では、担当に関わらず全ての行に編集が出る", async () => {
+    await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: "編集" })).toHaveLength(2);
+  });
+
+  it("削除できないときも、ボタンは消さずに押せなくする", async () => {
+    // 確認依頼後に消せると、差し戻された指摘ごと消して確定できてしまいます。
+    // ただしボタンごと消すと「なぜできないか」が画面から読み取れなくなります。
+    // @see docs/adr/0012-confirm-preconditions.md
+    await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        deleteBlocker="確認依頼後は削除できません"
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    const [remove] = screen.getAllByRole("button", { name: "削除" });
+
+    expect(remove).toHaveAttribute("data-disabled", "true");
+  });
+
+  it("下書き中は削除できる", async () => {
+    await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        deleteBlocker={null}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    const [remove] = screen.getAllByRole("button", { name: "削除" });
+
+    expect(remove).not.toHaveAttribute("data-disabled");
+  });
+
+  it("編集フォームは、承認が取り直しになることを伝える", async () => {
+    const { user } = await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "編集" })[0] as HTMLElement);
+
+    expect(await screen.findByText(/確認状況は未確認に戻ります/)).toBeInTheDocument();
+  });
+});
+
+describe("編集フォームの操作", () => {
+  const salesUsers = [
+    { id: MINE, name: "佐藤 花子", role: "sales" as const },
+    { id: THEIRS, name: "鈴木 一郎", role: "sales" as const },
+  ];
+
+  it("担当営業を選び直してもフォームが閉じない", async () => {
+    // Select のドロップダウンがポータルに出ると、選択クリックが Popover にとって
+    // 「外側のクリック」になり、入力途中のフォームごと閉じてしまいます。
+    const { user } = await renderWithProviders(
+      <ReportLineTable
+        canEdit
+        canReview={false}
+        lines={lines}
+        salesUsers={salesUsers}
+        viewerId="admin"
+      />,
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "編集" })[0] as HTMLElement);
+    await user.click(await screen.findByLabelText("担当営業", { selector: "input" }));
+    // 表の行にも同じ名前があるため、後から現れるドロップダウン側を選びます。
+    const options = await screen.findAllByText("鈴木 一郎");
+    await user.click(options.at(-1) as HTMLElement);
+
+    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
+  });
+});

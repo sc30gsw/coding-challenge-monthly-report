@@ -8,14 +8,16 @@
 
 **なぜ Valibot だけか:** Elysia は標準の TypeBox に加え、`mapJsonSchema: { valibot: toJsonSchema }`（`@valibot/to-json-schema`）で Valibot を OpenAPI に写せます。フォームが Formisch + Valibot（[0004](./0004-valibot-and-formisch-for-forms.md)）である以上、サーバー側だけ TypeBox にすると同じ検証規則を 2 つの記法で書くことになります。1 本に統一しました。
 
-## Drizzle スキーマからの導出
+## Drizzle スキーマからは導出しない
 
-Elysia の公式レシピは Drizzle スキーマを `drizzle-typebox` で検証モデルに変換する流れを推しています。ここでは Valibot 統一の方針に合わせて **`drizzle-valibot`** を使うことにしました。
+Elysia の公式レシピは Drizzle スキーマを `drizzle-typebox` で検証モデルに変換する流れを推しています。当初は Valibot 版の `drizzle-valibot` を使うつもりでしたが、**実装してみて使わないと判断し、依存ごと外しました**。
 
-副次的な利点として、公式レシピが警告している **`@sinclair/typebox` のバージョン固定（Symbol 衝突を避けるための `overrides`）が不要になります**。Elysia 本体が使う TypeBox と、Drizzle 由来の TypeBox が別インスタンスになる問題そのものが発生しません。
+理由は、API のスキーマがテーブルの形と一致しないためです。金額合計は明細から算出する導出値で列がなく、明細の担当営業は `salesOwner: { id, name }` として入れ子で返し、対象月は DB では月初日・API では `YYYY-MM` です。テーブルから生成したものを削って組み直すより、API の形をそのまま Valibot で書くほうが短く、読んで分かります。
+
+副次的に、公式レシピが警告している `@sinclair/typebox` のバージョン固定（Symbol 衝突を避けるための `overrides`）も不要なままです。Elysia が使う TypeBox と Drizzle 由来の TypeBox が別インスタンスになる問題そのものが起きません。
 
 ## 影響
 
-- `@valibot/to-json-schema` と `drizzle-valibot` が追加の依存になります。
+- 追加の依存は `@valibot/to-json-schema` だけです。
 - Valibot スキーマは `src/features/*/schemas/` に置き、サーバーのルート定義とフォームの両方から import します。定義箇所は 1 つです。
 - Eden の型は `typeof app` に依存するので、Elysia のルート定義に明示的な戻り値型を書きすぎると型が痩せます。ハンドラの戻り値は推論に任せます。

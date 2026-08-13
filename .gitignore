@@ -7,6 +7,7 @@ dist
 
 # generated tool dirs
 .tanstack
+.vt
 
 # environment variable files
 .env
@@ -25,3 +26,6 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Serena（コード解析ツール）のローカルキャッシュ
+.serena

@@ -1,23 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { cn } from "cnfast";
-import { useState } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/** 起点は報告書の一覧です。中身はロールごとに変わります（管理者は全件、営業は担当分）。 */
 export const Route = createFileRoute("/")({
-  component: Home,
+  beforeLoad: ({ context }) => {
+    throw redirect({ to: context.user ? "/reports" : "/login" });
+  },
 });
-
-function Home() {
-  const [isBlue, setIsBlue] = useState(false);
-  return (
-    <main className="grid min-h-screen place-items-center">
-      <div className="space-y-4">
-        <h1 className={cn("text-5xl font-bold text-red-500", isBlue && "text-blue-500")}>
-          Hello World!
-        </h1>
-        <button type="button" onClick={() => setIsBlue((prev) => !prev)}>
-          Toggle
-        </button>
-      </div>
-    </main>
-  );
-}

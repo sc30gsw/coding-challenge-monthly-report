@@ -20,6 +20,7 @@
 
 - `user` テーブルは自前で持ちます（`id` / `name` / `email` / `role`）。`role` は `admin` | `sales` です。認証基盤由来のテーブル（session / account / verification）はありません。
 - seed は `user` へ直接 insert します。ハッシュもサインアップ経路も要りません。管理者 1・営業 2 です。
-- `.env.example` には `DATABASE_URL` と `COOKIE_SECRET` のみです。`COOKIE_SECRET` の生成方法（`openssl rand -base64 32`）を README に書きます。
+- `.env.example` は `DATABASE_URL` / `TEST_DATABASE_URL` / `COOKIE_SECRET` の 3 つです。`COOKIE_SECRET` の生成方法（`openssl rand -base64 32`）を README に書きます。
+- **ログイン画面の選択肢を返す `GET /api/auth/users` だけは無認証です。** ログイン前に呼ぶ必要があるためで、ダミーログインという方式の必然です。名前とロールが誰にでも見えることを承知のうえで許容しています。本番相当の認証へ差し替えるときに真っ先に消える経路です。
 - README に「これは要件が許容するダミーログインであり、本番運用の認証ではありません」と明記します。面接で聞かれる前に、選んだ理由ごと書いておきます。
 - 本番相当の認証へ差し替える場合、変わるのは macro の `resolve` の中身だけです。認可判定とドメイン層には触りません。
