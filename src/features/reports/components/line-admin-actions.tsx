@@ -14,10 +14,10 @@ import {
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { removeReportLine, updateReportLine } from "~/features/reports/api/reports";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
 import { CreateReportLineInputSchema } from "~/features/reports/schemas/report-schema";
+import type { SessionUser } from "~/lib/session-schema";
 
 type LineAdminActionsProps = {
   /** 削除できない理由。`null` なら削除できます。文言はドメイン層が持ちます。 */

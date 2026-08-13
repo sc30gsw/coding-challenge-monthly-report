@@ -5,11 +5,11 @@ import { useRouter } from "@tanstack/react-router";
 import { Result } from "better-result";
 import { useOptimistic, useState, useTransition } from "react";
 
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { postComment } from "~/features/comments/api/comments";
 import type { Comment } from "~/features/comments/schemas/comment-schema";
 import { CreateCommentInputSchema } from "~/features/comments/schemas/comment-schema";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
+import type { SessionUser } from "~/lib/session-schema";
 
 type CommentThreadProps = {
   comments: Comment[];

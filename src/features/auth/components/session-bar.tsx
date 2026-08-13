@@ -2,7 +2,7 @@ import { Badge, Button, Group, Text } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
 
 import { logout } from "~/features/auth/api/session";
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
+import type { SessionUser } from "~/lib/session-schema";
 
 const ROLE_LABELS = {
   admin: "管理者",

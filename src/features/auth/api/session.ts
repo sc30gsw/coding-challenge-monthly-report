@@ -1,8 +1,8 @@
 import { Result } from "better-result";
 
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { getApi } from "~/lib/api/client";
 import { toResult } from "~/lib/api/result";
+import type { SessionUser } from "~/lib/session-schema";
 
 /**
  * 画面から見たセッションの入出力です。認可の判定はサーバーが行うので、

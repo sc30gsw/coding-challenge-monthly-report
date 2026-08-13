@@ -4,11 +4,8 @@ import * as v from "valibot";
 
 import { db } from "~/db/client";
 import { users } from "~/db/schema";
-import {
-  LoginInputSchema,
-  type SessionUser,
-  SessionUserSchema,
-} from "~/features/auth/schemas/session-schema";
+import { LoginInputSchema } from "~/features/auth/schemas/login-schema";
+import { type SessionUser, SessionUserSchema } from "~/lib/session-schema";
 
 /**
  * 要件が許容するダミーログインです。パスワードは扱わず、seed 済みユーザーから選ぶだけ。

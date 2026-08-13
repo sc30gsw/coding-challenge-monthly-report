@@ -1,10 +1,10 @@
 import { Badge, Group, Stack, Table, Text } from "@mantine/core";
 
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { LineAdminActions } from "~/features/reports/components/line-admin-actions";
 import { LineReviewActions } from "~/features/reports/components/line-review-actions";
 import { REPORT_LINE_STATUS_LABELS } from "~/features/reports/domain/status-labels";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
+import type { SessionUser } from "~/lib/session-schema";
 
 type ReportLineTableProps = {
   /** 明細を消せない理由。`null` なら消せます。文言はドメイン層が持ちます。 */

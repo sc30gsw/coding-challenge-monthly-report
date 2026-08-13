@@ -3,10 +3,10 @@ import "@testing-library/jest-dom/vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { CommentThread } from "~/features/comments/components/comment-thread";
 import type { Comment } from "~/features/comments/schemas/comment-schema";
 import type { ReportDetail } from "~/features/reports/schemas/report-schema";
+import type { SessionUser } from "~/lib/session-schema";
 import { listComments } from "~/server/comments-service";
 import { call, signInAs } from "~/test/api";
 import { connectFetchToApp, renderWithProviders, signInBrowserAs } from "~/test/browser";

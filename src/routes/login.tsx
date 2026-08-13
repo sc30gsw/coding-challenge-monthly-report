@@ -2,8 +2,8 @@ import { Badge, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 
 import { fetchSelectableUsers, login } from "~/features/auth/api/session";
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { orThrow } from "~/lib/api/result";
+import type { SessionUser } from "~/lib/session-schema";
 
 const ROLE_LABELS = {
   admin: "管理者",

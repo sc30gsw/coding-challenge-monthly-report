@@ -1,12 +1,12 @@
 import { Result } from "better-result";
 
-import type { Role } from "~/features/auth/schemas/session-schema";
 import { NotLineOwner, TransitionNotAllowed } from "~/features/reports/domain/errors";
 import {
   REPORT_LINE_STATUS_LABELS,
   REPORT_STATUS_LABELS,
 } from "~/features/reports/domain/status-labels";
 import type { ReportLine, ReportStatus } from "~/features/reports/schemas/report-schema";
+import type { Role } from "~/lib/session-schema";
 
 /**
  * 明細の確認（承認・差し戻し）です。**純粋関数**なので DB も HTTP も知りません。

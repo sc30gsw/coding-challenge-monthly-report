@@ -3,9 +3,9 @@ import type { SubmitHandler } from "@formisch/react";
 import { Button, Group, NumberInput, Select, TextInput } from "@mantine/core";
 import { useRouter } from "@tanstack/react-router";
 
-import type { SessionUser } from "~/features/auth/schemas/session-schema";
 import { addReportLine } from "~/features/reports/api/reports";
 import { CreateReportLineInputSchema } from "~/features/reports/schemas/report-schema";
+import type { SessionUser } from "~/lib/session-schema";
 
 type AddReportLineFormProps = {
   reportId: string;
