@@ -247,8 +247,6 @@ vp dev
 3. `docker compose` で PostgreSQL を起動し、healthcheck が通るまで待つ
 4. アプリ用とテスト用の両方のデータベースにマイグレーションを適用し、seed を流す
 
-Docker を使わず外部の PostgreSQL に繋ぐ場合は、`.env` の `DATABASE_URL` と `TEST_DATABASE_URL` を書き換えてから `vp run setup` を実行してください。Docker には触らず、マイグレーションと seed を当てます。
-
 環境変数は [`.env.example`](.env.example) に、それぞれ何のために要るのかと併せて書いてあります。実際の値は含めていません。
 
 ### API 仕様書（OpenAPI）
