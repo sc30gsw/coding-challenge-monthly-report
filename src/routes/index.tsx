@@ -6,7 +6,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function Home() {
+export function Home() {
   const [isBlue, setIsBlue] = useState(false);
   return (
     <main className="grid min-h-screen place-items-center">

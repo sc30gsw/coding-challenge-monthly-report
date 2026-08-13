@@ -71,7 +71,11 @@ export default defineConfig({
   },
   plugins: [
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        routeFileIgnorePattern: "\\.test\\.tsx$",
+      },
+    }),
     // react's vite plugin must come after start's vite plugin
     react(),
     babel({ presets: [reactCompilerPreset()] }),

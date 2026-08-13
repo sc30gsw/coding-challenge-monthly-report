@@ -1,9 +1,11 @@
 /// <reference types="vite-plus/client" />
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
-import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import { NotFound } from "~/components/not-found";
+import { Pending } from "~/components/pending";
+import { RouteError } from "~/components/route-error";
 import { theme } from "~/lib/theme";
 
 import appCss from "~/styles.css?url";
@@ -17,7 +19,7 @@ const TanStackRouterDevtools = import.meta.env.DEV
 
 export const Route = createRootRoute({
   component: RootComponent,
-  errorComponent: ErrorComponent,
+  errorComponent: RouteError,
   head: () => ({
     links: [{ href: appCss, rel: "stylesheet" }],
     meta: [
@@ -26,8 +28,8 @@ export const Route = createRootRoute({
       { title: "TanStack Start Template" },
     ],
   }),
-  notFoundComponent: NotFoundComponent,
-  pendingComponent: PendingComponent,
+  notFoundComponent: NotFound,
+  pendingComponent: Pending,
 });
 
 function RootComponent() {
@@ -49,31 +51,5 @@ function RootComponent() {
         <Scripts />
       </body>
     </html>
-  );
-}
-
-function NotFoundComponent() {
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-semibold">404</h1>
-      <p>ページが見つかりませんでした。</p>
-    </div>
-  );
-}
-
-function ErrorComponent({ error }: ErrorComponentProps) {
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-semibold text-red-600">エラー</h1>
-      <p>{error.message}</p>
-    </div>
-  );
-}
-
-function PendingComponent() {
-  return (
-    <div className="p-4">
-      <p>読み込み中...</p>
-    </div>
   );
 }
