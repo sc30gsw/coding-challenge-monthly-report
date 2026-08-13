@@ -10,9 +10,16 @@ const reactDoctorRules = {
   ...TANSTACK_START_RULES,
 };
 
+const vendoredPaths = [
+  // Synced from upstream and hash-pinned in skills-lock.json — formatting them
+  // rewrites third-party files and invalidates the lock.
+  ".agents/**",
+  ".claude/skills/**",
+];
+
 export default defineConfig({
   fmt: {
-    ignorePatterns: ["**/routeTree.gen.ts"],
+    ignorePatterns: ["**/routeTree.gen.ts", ...vendoredPaths],
     sortImports: {
       partitionByComment: true,
     },
@@ -31,7 +38,7 @@ export default defineConfig({
       browser: true,
       node: true,
     },
-    ignorePatterns: ["**/routeTree.gen.ts"],
+    ignorePatterns: ["**/routeTree.gen.ts", ...vendoredPaths],
     jsPlugins: [{ name: "react-doctor", specifier: "oxlint-plugin-react-doctor" }],
     options: {
       denyWarnings: true,
@@ -69,6 +76,10 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
   ],
+  resolve: {
+    // `~/*` → `src/*` comes from compilerOptions.paths in tsconfig.json.
+    tsconfigPaths: true,
+  },
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },

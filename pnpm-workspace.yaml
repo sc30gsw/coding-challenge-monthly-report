@@ -1,5 +1,10 @@
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.1
+  # elysia は exact-mirror を peerDependency `>= 0.0.9`（上限なし）で宣言しており、
+  # pnpm の peer 自動解決が最新の 1.2.4 を引く。1.2.4 は SLSA provenance が無く
+  # trustPolicy: no-downgrade に弾かれる（1.2.2 / 1.2.3 には provenance がある）。
+  # elysia 本体の依存範囲 ^0.2.7 と一致し、かつ provenance のある 0.2.7 に固定する。
+  exact-mirror: 0.2.7
 
 trustPolicy: no-downgrade
 
@@ -16,4 +21,5 @@ onlyBuiltDependencies:
 minimumReleaseAge: 1440
 
 allowBuilds:
+  esbuild: set this to true or false
   msgpackr-extract: false

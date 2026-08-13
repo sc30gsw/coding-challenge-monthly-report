@@ -1,1 +1,6 @@
-@import "tailwindcss";
+/*
+ * Imports Tailwind and `@mantine/core/styles.layer.css` itself, in the layer order
+ * `theme, base, mantine, components, utilities` — so Tailwind's preflight cannot
+ * clobber Mantine component styles. Do not add a bare `@import "tailwindcss"`.
+ */
+@import "tailwind-preset-mantine";

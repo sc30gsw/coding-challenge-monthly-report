@@ -6,6 +6,11 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
 
+    /* Paths — consumed by Vite via resolve.tsconfigPaths in vite.config.ts */
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+
     /* Strict */
     "strict": true,
     "libReplacement": true,

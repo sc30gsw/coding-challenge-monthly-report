@@ -7,8 +7,6 @@ dist
 
 # generated tool dirs
 .tanstack
-.cursor
-.agents/skills
 
 # environment variable files
 .env
