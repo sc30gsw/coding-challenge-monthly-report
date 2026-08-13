@@ -5,6 +5,8 @@ import { Elysia } from "elysia";
 import * as v from "valibot";
 
 import { db } from "~/db/client";
+import { auth, SESSION_COOKIE } from "~/server/auth";
+import { env } from "~/server/env";
 
 /**
  * API 層。TanStack Start のサーバールートにマウントするため `.listen()` は呼びません。
@@ -16,7 +18,12 @@ const HealthResponseSchema = v.object({
   status: v.literal("ok"),
 });
 
-export const app = new Elysia({ prefix: "/api" })
+export const app = new Elysia({
+  // セッション Cookie は署名します。検証はここが一手に引き受けるので、
+  // ハンドラ側は「読めたかどうか」だけを見ればよくなります。
+  cookie: { secrets: env.COOKIE_SECRET, sign: [SESSION_COOKIE] },
+  prefix: "/api",
+})
   .use(
     openapi({
       documentation: {
@@ -34,6 +41,16 @@ export const app = new Elysia({ prefix: "/api" })
       provider: "scalar",
     }),
   )
+  /**
+   * 署名の検証に失敗した Cookie は 400 ではなく 401 で返します。
+   * 改竄した要求と、そもそもログインしていない要求を、呼び出し側から区別させないためです。
+   */
+  .onError(({ code, status }) => {
+    if (code === "INVALID_COOKIE_SIGNATURE") {
+      return status(401, "Not signed in");
+    }
+  })
+  .use(auth)
   .get(
     "/health",
     async () => {

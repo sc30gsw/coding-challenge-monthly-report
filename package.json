@@ -16,6 +16,7 @@
     "fallow": "vp exec fallow dead-code",
     "fix": "vp check --fix",
     "preview": "vp preview",
+    "seed": "tsx src/db/seed.ts",
     "setup": "bash scripts/setup.sh",
     "test": "vp test",
     "type-check": "vp check --no-lint"
@@ -55,6 +56,7 @@
     "oxlint-plugin-react-doctor": "^0.9.10",
     "react-doctor": "^0.9.10",
     "tailwindcss": "^4.3.1",
+    "tsx": "^4.23.12",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
     "vite-plus": "0.2.1"
   },

@@ -4,6 +4,8 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import { fetchCurrentUser } from "~/features/auth/api/session";
+import { SessionBar } from "~/features/auth/components/session-bar";
 import { theme } from "~/lib/theme";
 
 import appCss from "~/styles.css?url";
@@ -16,6 +18,11 @@ const TanStackRouterDevtools = import.meta.env.DEV
   : null;
 
 export const Route = createRootRoute({
+  /**
+   * セッションはここで一度だけ解決し、以降のルートは `context.user` を読むだけにします。
+   * 画面側で判定を散らかさないためで、**認可そのものはサーバーが毎リクエストで行います**。
+   */
+  beforeLoad: async () => ({ user: await fetchCurrentUser() }),
   component: RootComponent,
   errorComponent: ErrorComponent,
   head: () => ({
@@ -23,7 +30,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { content: "width=device-width, initial-scale=1", name: "viewport" },
-      { title: "TanStack Start Template" },
+      { title: "月次報告書 共同作成アプリケーション" },
     ],
   }),
   notFoundComponent: NotFoundComponent,
@@ -31,6 +38,8 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const { user } = Route.useRouteContext();
+
   return (
     <html lang="ja" {...mantineHtmlProps}>
       <head>
@@ -39,6 +48,7 @@ function RootComponent() {
       </head>
       <body>
         <MantineProvider theme={theme}>
+          {user ? <SessionBar user={user} /> : null}
           <Outlet />
           {TanStackRouterDevtools ? (
             <Suspense fallback={null}>
