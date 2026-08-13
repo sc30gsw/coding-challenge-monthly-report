@@ -138,6 +138,11 @@ describe("楽観的な表示", () => {
     expect(
       await screen.findByText("コメントを投稿できませんでした。時間をおいて試してください。"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("存在しない報告書への投稿")).not.toBeInTheDocument();
+
+    // 楽観表示が消えるのは transition が終わったときです。理由の表示はその前に走りうるので、
+    // 消えるまで待ちます。順序を仮定すると、React の更新の流し方が変わったときに落ちます。
+    await waitFor(() => {
+      expect(screen.queryByText("存在しない報告書への投稿")).not.toBeInTheDocument();
+    });
   });
 });

@@ -21,5 +21,6 @@ onlyBuiltDependencies:
 minimumReleaseAge: 1440
 
 allowBuilds:
-  esbuild: set this to true or false
+  # drizzle-kit / Vite が postinstall でネイティブバイナリを展開するために必要
+  esbuild: true
   msgpackr-extract: false
